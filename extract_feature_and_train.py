@@ -8,6 +8,8 @@ term in different part of information of the products.
 import pandas as pd
 from sklearn.ensemble \
     import RandomForestRegressor, BaggingRegressor
+from sklearn.datasets import dump_svmlight_file
+import numpy as np
 
 
 def find_occurrences(str1, str2):
@@ -59,21 +61,27 @@ df_test = df_all.iloc[train_num:]
 id_test = df_test['id']
 
 y_train = df_train['relevance'].values
-X_train = df_train.drop(['id', 'relevance'], axis=1).values
-X_test = df_test.drop(['id', 'relevance'], axis=1).values
+X_train = df_train.drop(
+        ['id', 'relevance', 'product_uid'], axis=1).values
+X_test = df_test.drop(
+        ['id', 'relevance', 'product_uid'], axis=1).values
+X_test_len = len(X_test)
 
-
-# train the data
 rf = RandomForestRegressor(
-        n_estimators=15, max_depth=6, random_state=0)
+        n_estimators=30, max_depth=6, random_state=0)
 clf = BaggingRegressor(
-        rf, n_estimators=45, max_samples=0.1, random_state=25)
+        rf, n_estimators=60, max_samples=0.13, random_state=25)
 clf.fit(X_train, y_train)
 y_prediction = clf.predict(X_test)
-
 
 # Output the result
 pd.DataFrame({"id": id_test, "relevance": y_prediction})\
     .to_csv('submission.csv', index=False)
 
 
+# output the result to a libSVM file.
+dump_svmlight_file(X_train, y_train, 'train_libSVM.dat',
+                   zero_based=True, multilabel=False)
+test_file_label = np.zeros(X_test_len)
+dump_svmlight_file(X_test, test_file_label, 'test_libSVM.dat',
+                   zero_based=True, multilabel=False)
