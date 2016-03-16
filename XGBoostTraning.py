@@ -16,16 +16,13 @@ def clean_result(x):
 
 train = xgb.DMatrix('train_libSVM.dat')
 test = xgb.DMatrix('test_libSVM.dat')
+validation = xgb.DMatrix('validate_libSVM.dat')
+param = {'max_depth': 15, 'eta': 0.01, 'silent': 1,
+         'objective': 'reg:linear', 'gamma': -5,
+         'subsample': 0.5, 'colsample_bytree': 0.8}
 
-param = {'max_depth': 5, 'eta': 0.3, 'silent': 1,
-         'objective': 'reg:linear', 'gamma': 0.0001,
-         'subsample': 0.75, 'colsample_bytree': 0.75}
-# param = {'silent': 1, 'objective': 'reg:linear',
-#          'subsample': 0.75,  'booster': 'gblinear',
-#          'lambda': 1, 'alpha':1,
-#          'lambda_bias': 0.4, 'eval_metric': 'logloss'}
-watchlist = [(train, 'eval'), (train, 'train')]
-num_round = 500
+watchlist = [(validation, 'eval'), (train, 'train')]
+num_round = 221
 xgb_model = xgb.train(param, train, num_round, watchlist)
 prediction = xgb_model.predict(test)
 test_id = pd.read_pickle('id_test')
