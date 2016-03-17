@@ -10,8 +10,6 @@ from sklearn.datasets import dump_svmlight_file
 import numpy as np
 from nltk.corpus import stopwords
 import store_data_in_pandas as sd
-import sys
-
 
 
 stopwords_list = stopwords.words('english')
@@ -33,6 +31,17 @@ def find_occurrences(str1, str2):
                 if word not in stemmed_stopwords])
 
 
+def find_occurrences_modified(str1, str2):
+    """
+    find how many words in str1 appear at least once in str2
+    :param str1: search term
+    :param str2: a column of information of product
+    :return: The number of words in str1 that appear in str2
+    """
+    return sum([str2.find(word) for word in str1.split()
+                if word not in stemmed_stopwords])
+
+
 def range_filter(x):
     """
     For each feature, round to to large data to 6
@@ -41,6 +50,21 @@ def range_filter(x):
     """
     if x > 6:
         return 6
+    else:
+        return x
+
+
+def modify_zero_and_one(x):
+    """
+    If the target value is 0, add 0.01 to it.
+    Otherwise if it is 1, remove 0.01 from it.
+    :param x: target value in [0, 1]
+    :return: modified target value in (0, 1)
+    """
+    if x >= 0.99:
+        return 0.99
+    elif x <= 0.01:
+        return 0.01
     else:
         return x
 
@@ -62,17 +86,21 @@ def main():
 
     # map find_occurrences to the separated information.
     df_all['word_in_title'] = df_all['product_info'] \
-        .map(lambda x: find_occurrences(x.split('\t')[0],
-                                        x.split('\t')[1]))
+        .map(lambda x:
+             find_occurrences(
+                     x.split('\t')[0], x.split('\t')[1]))
     df_all['word_in_description'] = df_all['product_info'] \
-        .map(lambda x: find_occurrences(x.split('\t')[0],
-                                        x.split('\t')[2]))
+        .map(lambda x:
+             find_occurrences(
+                     x.split('\t')[0], x.split('\t')[2]))
     df_all['word_in_attributes'] = df_all['product_info'] \
-        .map(lambda x: find_occurrences(x.split('\t')[0],
-                                        x.split('\t')[3]))
+        .map(lambda x:
+             find_occurrences(
+                     x.split('\t')[0], x.split('\t')[3]))
     df_all['word_in_brand'] = df_all['product_info'] \
-        .map(lambda x: find_occurrences(x.split('\t')[0],
-                                        x.split('\t')[4]))
+        .map(lambda x:
+             find_occurrences_modified(
+                     x.split('\t')[0], x.split('\t')[4]))
     df_all = df_all.drop(['search_term', 'product_title',
                           'product_description', 'product_info',
                           'attributes', 'brand'], axis=1)
@@ -90,6 +118,8 @@ def main():
             lambda x: (x - mean_word_in_title) / std_word_in_title)
     df_all['relevance'] = df_all['relevance']\
         .map(lambda x: (x - 1) / 2.)
+    df_all['relevance'] = df_all['relevance']\
+        .map(lambda x: modify_zero_and_one(x))
     # extract train data and test data
     df_train = df_all.iloc[:train_num]
     df_test = df_all.iloc[train_num:]
@@ -98,20 +128,36 @@ def main():
 
     # Output targets of training data, training data, testing data
     # to pd frame file
-    y_train = df_train['relevance'].values
     df_train['relevance'].to_pickle('y_train')
-    X_train = df_train.drop(
-            ['id', 'relevance', 'product_uid'], axis=1).values
     df_train\
-        .drop(['id', 'relevance', 'product_uid'], axis=1)\
+        .drop(['id', 'relevance'], axis=1)\
         .to_pickle('X_train')
-    X_test = df_test.drop(
-            ['id', 'relevance', 'product_uid'], axis=1).values
     df_test\
-        .drop(['id', 'relevance', 'product_uid'], axis=1)\
+        .drop(['id', 'relevance'], axis=1)\
         .to_pickle('X_test')
 
+    # This snippet of code drops 'product_uid' as well,
+    # which may be however useful in this project because
+    # the relevance may be biased to several products.
+    # X_train = df_train.drop(
+    #         ['id', 'relevance', 'product_uid'], axis=1).values
+    # df_train\
+    #     .drop(['id', 'relevance', 'product_uid'], axis=1)\
+    #     .to_pickle('X_train')
+    # X_test = df_test.drop(
+    #         ['id', 'relevance', 'product_uid'], axis=1).values
+    # df_test\
+    #     .drop(['id', 'relevance', 'product_uid'], axis=1)\
+    #     .to_pickle('X_test')
+
     # output the feature data to libSVM files.
+    y_train = df_train['relevance'].values
+    X_train = df_train.drop(
+            ['id', 'relevance'], axis=1).values
+
+    X_test = df_test.drop(
+            ['id', 'relevance'], axis=1).values
+
     validation_num = train_num / 4
     dump_svmlight_file(X_train[: train_num - validation_num],
                        y_train[: train_num - validation_num],
