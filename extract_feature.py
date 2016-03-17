@@ -203,7 +203,8 @@ def main():
 
     X_test = df_test.drop(
             ['id', 'relevance'], axis=1).values
-
+    dump_svmlight_file(X_train, y_train, 'all_train_libSVM.dat',
+                       zero_based=True, multilabel=False)
     validation_num = train_num / 4
     dump_svmlight_file(X_train[: train_num - validation_num],
                        y_train[: train_num - validation_num],
