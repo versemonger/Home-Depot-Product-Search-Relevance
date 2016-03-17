@@ -11,7 +11,6 @@ import numpy as np
 from nltk.corpus import stopwords
 import store_data_in_pandas as sd
 
-
 stopwords_list = stopwords.words('english')
 stemmed_stopwords = [sd.stem_text(stop_word)
                      for stop_word in stopwords_list]
@@ -84,30 +83,61 @@ def main():
           + "\t" + df_all['product_description'] + "\t" \
           + df_all['attributes'] + "\t" + df_all['brand']
 
-    # map find_occurrences to the separated information.
+    # Count number of characters in each column
+    df_all['title_length'] \
+        = df_all['product_info'] \
+        .map(lambda x: len(x.split('\t')[1]))
+    df_all['description_length'] \
+        = df_all['product_info'] \
+        .map(lambda x: len(x.split('\t')[2]))
+    df_all['attributes_length'] = df_all['product_info'] \
+        .map(lambda x: len(x.split('\t')[3]))
+    df_all['brand_length'] = df_all['product_info'] \
+        .map(lambda x: len(x.split('\t')[4]))
+
+    # Coalesce all information into one column so we can apply
+    # map to that one column
+    df_all['product_info'] \
+        = df_all['product_info'] + "\t" \
+          + df_all['title_length'] + "\t" \
+          + df_all['description_length'] + "\t" \
+          + df_all['attributes_length'] + "\t" \
+          + df_all['brand_length'] + "\t"
+
+    # map find_occurrences to the separated information
+    # and divide the result by length of the corresponding column
+    # content
     df_all['word_in_title'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
-                     x.split('\t')[0], x.split('\t')[1]))
+                     x.split('\t')[0], x.split('\t')[1]) /
+             float(x.split('\t')[5]))
     df_all['word_in_description'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
-                     x.split('\t')[0], x.split('\t')[2]))
+                     x.split('\t')[0], x.split('\t')[2]) /
+             float(x.split('\t')[6])
+             )
     df_all['word_in_attributes'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
-                     x.split('\t')[0], x.split('\t')[3]))
+                     x.split('\t')[0], x.split('\t')[3]) /
+             float(x.split('\t')[7]))
     df_all['word_in_brand'] = df_all['product_info'] \
         .map(lambda x:
-             find_occurrences_modified(
-                     x.split('\t')[0], x.split('\t')[4]))
+             find_occurrences(
+                     x.split('\t')[0], x.split('\t')[4]) /
+             float(x.split('\t')[8]))
+
     df_all = df_all.drop(['search_term', 'product_title',
                           'product_description', 'product_info',
                           'attributes', 'brand'], axis=1)
 
     # Normalize all useful data in df
     for column in ['word_in_title', 'word_in_description',
-                   'word_in_attributes', 'word_in_brand']:
+                   'word_in_attributes', 'word_in_brand',
+                   'title_length', 'description_length',
+                   'attributes_length', 'brand_length']:
         df_all[column] \
             = df_all[column].map(lambda x: range_filter(x))
         mean_word_in_title = df_all[column].mean()
@@ -116,9 +146,9 @@ def main():
             = df_all[column] \
             .map(
             lambda x: (x - mean_word_in_title) / std_word_in_title)
-    df_all['relevance'] = df_all['relevance']\
+    df_all['relevance'] = df_all['relevance'] \
         .map(lambda x: (x - 1) / 2.)
-    df_all['relevance'] = df_all['relevance']\
+    df_all['relevance'] = df_all['relevance'] \
         .map(lambda x: modify_zero_and_one(x))
     # extract train data and test data
     df_train = df_all.iloc[:train_num]
@@ -129,11 +159,11 @@ def main():
     # Output targets of training data, training data, testing data
     # to pd frame file
     df_train['relevance'].to_pickle('y_train')
-    df_train\
-        .drop(['id', 'relevance'], axis=1)\
+    df_train \
+        .drop(['id', 'relevance'], axis=1) \
         .to_pickle('X_train')
-    df_test\
-        .drop(['id', 'relevance'], axis=1)\
+    df_test \
+        .drop(['id', 'relevance'], axis=1) \
         .to_pickle('X_test')
 
     # This snippet of code drops 'product_uid' as well,
