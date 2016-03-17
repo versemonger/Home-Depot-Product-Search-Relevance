@@ -119,7 +119,6 @@ def main():
     X_test = df_test.drop(
             ['id', 'relevance', 'product_uid'], axis=1).values
     X_test_len = len(X_test)
-
     if train_model:
         rf = RandomForestRegressor(
                 n_estimators=30, max_depth=6, random_state=0)
@@ -127,11 +126,12 @@ def main():
                 rf, n_estimators=60, max_samples=0.13,
                 random_state=25)
         clf.fit(X_train, y_train)
-        y_prediction = clf.predict(X_test)
+        rfr_prediction = clf.predict(X_test)
 
-        # Output the result
-        pd.DataFrame({"id": id_test, "relevance": y_prediction}) \
-            .to_csv('submission.csv', index=False)
+        # # Output the result
+        # pd.DataFrame({"id": id_test, "relevance": y_prediction}) \
+        #     .to_csv('submission.csv', index=False)
+
     # Builder scorer which is used to do grid search for XGBoost
     RMSE = make_scorer(fmean_squared_error,
                        greater_is_better=False)
@@ -163,15 +163,23 @@ def main():
     # print("Best CV score:")
     # print(-model.best_score_)
 
-    # make predictions with tuned parameters.
+    # make predictions with tuned parameters and XGBoost model
     xgb_model.fit(X_train, y_train)
-    prediction = xgb_model.predict(X_test)
+    xgb_prediction = xgb_model.predict(X_test)
+
+    # ensemble result of two models
+    prediction = (xgb_prediction + rfr_prediction) / 2
+
+    # rescale the result to
     prediction = prediction * 2 + 1
     prediction[prediction > 3] = 3
     prediction[prediction < 1] = 1
+
+    # output the result
     pd.DataFrame({"id": id_test, "relevance": prediction}) \
         .to_csv('submission.csv', index=False)
-    # output the result to libSVM files.
+
+    # output the feature data to libSVM files.
     validation_num = train_num / 4
     dump_svmlight_file(X_train[: train_num - validation_num],
                        y_train[: train_num - validation_num],
