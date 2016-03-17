@@ -5,7 +5,7 @@ term in different part of information of the products.
 """
 
 import pandas as pd
-
+import sys
 from sklearn.datasets import dump_svmlight_file
 import numpy as np
 from nltk.corpus import stopwords
@@ -68,6 +68,7 @@ def modify_zero_and_one(x):
         return x
 
 
+
 def main():
     # import the number of training tuples
     df_train = pd.read_csv("train.csv", encoding="ISO-8859-1")
@@ -75,7 +76,8 @@ def main():
     df_train = None
 
     df_all = pd.read_pickle('df_all')
-
+    # print df_all.head(10)
+    # sys.exit()
     # Coalesce all information into one column so we can apply
     # map to that one column
     df_all['product_info'] \
@@ -86,14 +88,14 @@ def main():
     # Count number of characters in each column
     df_all['title_length'] \
         = df_all['product_info'] \
-        .map(lambda x: len(x.split('\t')[1]))
+        .map(lambda x: str(len(str(x.split('\t')[1]))))
     df_all['description_length'] \
         = df_all['product_info'] \
-        .map(lambda x: len(x.split('\t')[2]))
+        .map(lambda x: str(len(str(x.split('\t')[2]))))
     df_all['attributes_length'] = df_all['product_info'] \
-        .map(lambda x: len(x.split('\t')[3]))
+        .map(lambda x: str(len(str(x.split('\t')[3]))))
     df_all['brand_length'] = df_all['product_info'] \
-        .map(lambda x: len(x.split('\t')[4]))
+        .map(lambda x: str(len(str(x.split('\t')[4]))))
 
     # Coalesce all information into one column so we can apply
     # map to that one column
@@ -111,23 +113,22 @@ def main():
         .map(lambda x:
              find_occurrences(
                      x.split('\t')[0], x.split('\t')[1]) /
-             float(x.split('\t')[5]))
+             (float(x.split('\t')[5]) + 0.1))
     df_all['word_in_description'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
                      x.split('\t')[0], x.split('\t')[2]) /
-             float(x.split('\t')[6])
-             )
+             (float(x.split('\t')[6]) + 0.1))
     df_all['word_in_attributes'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
                      x.split('\t')[0], x.split('\t')[3]) /
-             float(x.split('\t')[7]))
+             (float(x.split('\t')[7]) + 0.1))
     df_all['word_in_brand'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
                      x.split('\t')[0], x.split('\t')[4]) /
-             float(x.split('\t')[8]))
+             (float(x.split('\t')[8]) + 0.1))
 
     df_all = df_all.drop(['search_term', 'product_title',
                           'product_description', 'product_info',
@@ -135,17 +136,32 @@ def main():
 
     # Normalize all useful data in df
     for column in ['word_in_title', 'word_in_description',
-                   'word_in_attributes', 'word_in_brand',
-                   'title_length', 'description_length',
-                   'attributes_length', 'brand_length']:
+                   'word_in_attributes', 'word_in_brand']:
         df_all[column] \
-            = df_all[column].map(lambda x: range_filter(x))
+            = df_all[column].map(lambda x: range_filter(float(x)))
         mean_word_in_title = df_all[column].mean()
         std_word_in_title = df_all[column].std()
         df_all[column] \
             = df_all[column] \
             .map(
-            lambda x: (x - mean_word_in_title) / std_word_in_title)
+                lambda x: (x - mean_word_in_title)
+                          / std_word_in_title)
+
+    print df_all['title_length']
+    # Normalize all useful data in df
+    for column in ['title_length', 'description_length',
+                   'attributes_length', 'brand_length']:
+        df_all[column] \
+            = df_all[column].map(lambda x: float(x))
+        mean_word_in_title = df_all[column].mean()
+        std_word_in_title = df_all[column].std()
+        print std_word_in_title
+        df_all[column] \
+            = df_all[column] \
+            .map(
+                lambda x: (x - mean_word_in_title)
+                          / std_word_in_title)
+
     df_all['relevance'] = df_all['relevance'] \
         .map(lambda x: (x - 1) / 2.)
     df_all['relevance'] = df_all['relevance'] \
