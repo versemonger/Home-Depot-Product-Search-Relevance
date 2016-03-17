@@ -12,6 +12,9 @@ import numpy as np
 from nltk.corpus import stopwords
 import store_data_in_pandas as sd
 import sys
+import xgboost as xgb
+from sklearn import grid_search
+from sklearn.metrics import mean_squared_error, make_scorer
 
 stopwords_list = stopwords.words('english')
 stemmed_stopwords = [sd.stem_text(stop_word)
@@ -43,6 +46,14 @@ def range_filter(x):
     else:
         return x
 
+
+def fmean_squared_error(ground_truth, predictions):
+    """
+    Used for evaluation of predictions with mean_squared_error
+    """
+    fmean_squared_error_ =\
+        mean_squared_error(ground_truth, predictions)**0.5
+    return fmean_squared_error_
 
 def main():
     # If the script has at least one additional argument,
@@ -94,7 +105,8 @@ def main():
             = df_all[column] \
             .map(
             lambda x: (x - mean_word_in_title) / std_word_in_title)
-
+    df_all['relevance'] = df_all['relevance']\
+        .map(lambda x: (x - 1) / 2.)
     # extract train data and test data
     df_train = df_all.iloc[:train_num]
     df_test = df_all.iloc[train_num:]
@@ -120,7 +132,35 @@ def main():
         # Output the result
         pd.DataFrame({"id": id_test, "relevance": y_prediction}) \
             .to_csv('submission.csv', index=False)
+    #
+    RMSE = make_scorer(fmean_squared_error,
+                       greater_is_better=False)
+    xgb_model\
+        = xgb.XGBRegressor(learning_rate=0.06, silent=True,
+                           objective="reg:logistic", gamma=2.25,
+                           min_child_weight=1.5, subsample=1,
+                           colsample_bylevel=0.8,
+                           scale_pos_weight=0.9,
+                           colsample_bytree=0.9, n_estimators=84,
+                           max_depth=7)
+    #              'gamma': [2.20, 2.25, 2.3, 2.35],
+    #          'min_child_weight': [0.3, 0.6, 1, 2]
+    #          'colsample_bytree': [0.4, 0.45, 0.5, 0.55]
+    param_grid = {
+                  'learning_rate': [0.005, 0.01, 0.03, 0.06],
+                  'min_child_weight': [0.5, 1, 1.5, 2]
+                  }
 
+    model \
+        = grid_search\
+        .GridSearchCV(estimator=xgb_model, param_grid=param_grid,
+                      n_jobs=-1, cv=2, verbose=20, scoring=RMSE)
+    print 'start search'
+    model.fit(X_train, y_train)
+    print("Best parameters found by grid search:")
+    print(model.best_params_)
+    print("Best CV score:")
+    print(-model.best_score_)
     # output the result to libSVM files.
     validation_num = train_num / 4
     dump_svmlight_file(X_train[: train_num - validation_num],
