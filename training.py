@@ -1,18 +1,10 @@
 from sklearn.ensemble \
     import RandomForestRegressor, BaggingRegressor
 import xgboost as xgb
-from sklearn import grid_search
-from sklearn.metrics import mean_squared_error, make_scorer
+
+
 import pandas as pd
-
-
-def fmean_squared_error(ground_truth, predictions):
-    """
-    Used for evaluation of predictions with mean_squared_error
-    """
-    fmean_squared_error_ =\
-        mean_squared_error(ground_truth, predictions)**0.5
-    return fmean_squared_error_
+import sys
 
 
 def main():
@@ -31,9 +23,6 @@ def main():
     # pd.DataFrame({"id": id_test, "relevance": y_prediction}) \
     #     .to_csv('submission.csv', index=False)
 
-    # Builder scorer which is used to do grid search for XGBoost
-    RMSE = make_scorer(fmean_squared_error,
-                       greater_is_better=False)
     # Set XGBRegressor with optimized parameters.
     xgb_model\
         = xgb.XGBRegressor(learning_rate=0.06, silent=True,
@@ -43,29 +32,12 @@ def main():
                            scale_pos_weight=0.9,
                            colsample_bytree=0.9, n_estimators=84,
                            max_depth=7)
-    #              'gamma': [2.20, 2.25, 2.3, 2.35],
-    #          'min_child_weight': [0.3, 0.6, 1, 2]
-    #          'colsample_bytree': [0.4, 0.45, 0.5, 0.55]
-    # param_grid = {
-    #               'learning_rate': [0.005, 0.01, 0.03, 0.06],
-    #               'min_child_weight': [0.5, 1, 1.5, 2]
-    #               }
-    # # Do grid search with a set of parameters for XGBoost.
-    # model \
-    #     = grid_search\
-    #     .GridSearchCV(estimator=xgb_model, param_grid=param_grid,
-    #                   n_jobs=-1, cv=2, verbose=20, scoring=RMSE)
-    # print 'start search'
-    # model.fit(X_train, y_train)
-    # print("Best parameters found by grid search:")
-    # print(model.best_params_)
-    # print("Best CV score:")
-    # print(-model.best_score_)
 
     # make predictions with tuned parameters and XGBoost model
     xgb_model.fit(X_train, y_train)
     xgb_prediction = xgb_model.predict(X_test)
-
+    print xgb_prediction[:20]
+    print rfr_prediction[:20]
     # ensemble result of two models
     prediction = (xgb_prediction + rfr_prediction) / 2
 
@@ -78,7 +50,6 @@ def main():
     # output the result
     pd.DataFrame({"id": id_test, "relevance": prediction}) \
         .to_csv('submission.csv', index=False)
-
 
 if __name__ == '__main__':
     main()
