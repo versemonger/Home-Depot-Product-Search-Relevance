@@ -26,55 +26,54 @@ def clean_result(x):
     x[x <= 1] = 1
 
 
-
 def main():
-    X_train = pd.read_pickle('X_train').values
-    X_test = pd.read_pickle('X_test').values
-    y_train = pd.read_pickle('y_train').values
-
-    # Some set of parameter grids I have used
-    #              'gamma': [2.20, 2.25, 2.3, 2.35],
-    #          'min_child_weight': [0.3, 0.6, 1, 2]
-    #          'colsample_bytree': [0.4, 0.45, 0.5, 0.55]
-    #       'learning_rate': [0.005, 0.01, 0.03, 0.06],
-    #              'min_child_weight': [0.5, 1, 1.5, 2]
-
-    # Builder scorer which is used to do grid search for XGBoost
-    rmse = make_scorer(fmean_squared_error,
-                       greater_is_better=False)
-
-    # Set XGBRegressor with some parameters.
-    xgb_model\
-        = xgb.XGBRegressor(learning_rate=0.06, silent=True,
-                           objective="reg:logistic", gamma=2.25,
-                           min_child_weight=5, subsample=0.8,
-                           scale_pos_weight=0.9,
-                           colsample_bytree=0.8, n_estimators=115,
-                           max_depth=10)
-    param_grid = {'max_depth': [9, 10, 11, 12, 13],
-                  'gamma': [2.15, 2.25, 2.30, 2.35, 2.40]}
-
-    # Do grid search with a set of parameters for XGBoost.
-    model \
-        = grid_search\
-        .GridSearchCV(estimator=xgb_model, param_grid=param_grid,
-                      n_jobs=-1, cv=2, verbose=20, scoring=rmse)
-    print 'start search'
-    model.fit(X_train, y_train)
-    print("Best parameters found by grid search:")
-    print(model.best_params_)
-    print("Best CV score:")
-    print(-model.best_score_)
-
-    # Don't run the following code for now because I am in para
-    # tuning phase.
-    sys.exit()
+    # X_train = pd.read_pickle('X_train').values
+    # X_test = pd.read_pickle('X_test').values
+    # y_train = pd.read_pickle('y_train').values
+    #
+    # # Some set of parameter grids I have used
+    # #              'gamma': [2.20, 2.25, 2.3, 2.35],
+    # #          'min_child_weight': [0.3, 0.6, 1, 2]
+    # #          'colsample_bytree': [0.4, 0.45, 0.5, 0.55]
+    # #       'learning_rate': [0.005, 0.01, 0.03, 0.06],
+    # #              'min_child_weight': [0.5, 1, 1.5, 2]
+    #
+    # # Builder scorer which is used to do grid search for XGBoost
+    # rmse = make_scorer(fmean_squared_error,
+    #                    greater_is_better=False)
+    #
+    # # Set XGBRegressor with some parameters.
+    # xgb_model\
+    #     = xgb.XGBRegressor(learning_rate=0.06, silent=True,
+    #                        objective="reg:logistic", gamma=2.25,
+    #                        min_child_weight=5, subsample=0.8,
+    #                        scale_pos_weight=0.9,
+    #                        colsample_bytree=0.8, n_estimators=115,
+    #                        max_depth=10)
+    # param_grid = {'max_depth': [9, 10, 11, 12],
+    #               'gamma': [2.15, 2.25, 2.30]}
+    #
+    # # Do grid search with a set of parameters for XGBoost.
+    # model \
+    #     = grid_search\
+    #     .GridSearchCV(estimator=xgb_model, param_grid=param_grid,
+    #                   n_jobs=-1, cv=2, verbose=20, scoring=rmse)
+    # print 'start search'
+    # model.fit(X_train, y_train)
+    # print("Best parameters found by grid search:")
+    # print(model.best_params_)
+    # print("Best CV score:")
+    # print(-model.best_score_)
+    #
+    # # Don't run the following code for now because I am in para
+    # # tuning phase.
+    # sys.exit()
     train = xgb.DMatrix('train_libSVM.dat')
     all_train = xgb.DMatrix('all_train_libSVM.dat')
     test = xgb.DMatrix('test_libSVM.dat')
     validation = xgb.DMatrix('validate_libSVM.dat')
-    param = {'max_depth': 10, 'eta': 0.06, 'silent': 1,
-             'objective': 'reg:logistic', 'gamma': 2.25,
+    param = {'max_depth': 9, 'eta': 0.06, 'silent': 1,
+             'objective': 'reg:logistic', 'gamma': 2.3,
              'subsample': 0.8, 'colsample_bytree': 0.8,
              'min_child_weight': 5}
 
