@@ -81,6 +81,7 @@ def main():
                                subsample=0.8, scale_pos_weight=0.9,
                                colsample_bytree=0.8,
                                n_estimators=115, max_depth=10)
+        # optimal 10, 2.25
         param_grid = {'max_depth': [9, 10, 11, 12],
                       'gamma': [2.15, 2.25, 2.30]}
 
