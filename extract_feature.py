@@ -67,6 +67,16 @@ def modify_zero_and_one(x):
     else:
         return x
 
+def get_LSI_score(df):
+    """
+
+    :param df: The whole data frame that holds all data and
+               additionally contains the column 'product_info'
+    :return: LSI Score of each search_term-product pair
+    """
+    df[]
+
+
 
 
 def main():
