@@ -126,14 +126,14 @@ def main():
     # Count number of characters in each column
     df_all['title_length'] \
         = df_all['product_info'] \
-        .map(lambda x: str(len(str(x.split('\t')[1]))))
+        .map(lambda x: str(len(str(x.split('\t')[1]).split())))
     df_all['description_length'] \
         = df_all['product_info'] \
-        .map(lambda x: str(len(str(x.split('\t')[2]))))
+        .map(lambda x: str(len(str(x.split('\t')[2]).split())))
     df_all['attributes_length'] = df_all['product_info'] \
-        .map(lambda x: str(len(str(x.split('\t')[3]))))
+        .map(lambda x: str(len(str(x.split('\t')[3]).split())))
     df_all['brand_length'] = df_all['product_info'] \
-        .map(lambda x: str(len(str(x.split('\t')[4]))))
+        .map(lambda x: str(len(str(x.split('\t')[4]).split())))
 
     # Coalesce all information into one column so we can apply
     # map to that one column
