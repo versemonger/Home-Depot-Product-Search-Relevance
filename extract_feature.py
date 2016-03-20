@@ -105,6 +105,19 @@ def get_LSI_score(df):
     return df.drop(['text'], axis=1)
 
 
+def create_feature_map(features):
+    """
+    :param features: The columns names of data frame
+    :return: a map file between feature names and feature index
+    """
+    outfile = open('xgb.fmap', 'w')
+    i = 0
+    for feat in features:
+        outfile.write('{0}\t{1}\tq\n'.format(i, feat))
+        i += 1
+    outfile.close()
+
+
 def main():
     # import the number of training tuples
     df_train = pd.read_csv("train.csv", encoding="ISO-8859-1")
@@ -240,6 +253,10 @@ def main():
     X_train = df_train.drop(
             ['id', 'relevance'], axis=1).values
 
+    features = list(
+            df_train.drop(['id', 'relevance'], axis=1).columns[0:])
+
+    create_feature_map(features)
     X_test = df_test.drop(
             ['id', 'relevance'], axis=1).values
     dump_svmlight_file(X_train, y_train, 'all_train_libSVM.dat',
