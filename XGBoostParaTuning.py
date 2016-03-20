@@ -43,8 +43,8 @@ def main():
         # set bagging model
         clf = BaggingRegressor(
             rf, n_estimators=70, random_state=10,
-            n_jobs=1, bootstrap_features=True)
-
+            n_jobs=1, bootstrap_features=False)
+        # optimal in the following: 70, 10, False
         param_grid = {'n_estimators': [50, 60, 70],
                       'random_state': [10, 20, 30],
                       'bootstrap_features': [True, False]}
