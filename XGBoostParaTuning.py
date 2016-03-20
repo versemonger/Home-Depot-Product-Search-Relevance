@@ -38,11 +38,11 @@ def main():
     if tune_RFR:
         rmse = make_scorer(fmean_squared_error,
                            greater_is_better=False)
-        rf = RandomForestRegressor(n_jobs=-1, n_estimators=50,
+        rf = RandomForestRegressor(n_jobs=-1, n_estimators=33,
                                    max_depth=8, random_state=7)
         # set bagging model
         clf = BaggingRegressor(
-            rf, n_estimators=60, random_state=25,
+            rf, n_estimators=70, random_state=10,
             n_jobs=1, bootstrap_features=True)
 
         param_grid = {'n_estimators': [50, 60, 70],
@@ -107,14 +107,16 @@ def main():
                  'min_child_weight': 5}
 
         watchlist = [(validation, 'eval'), (train, 'train')]
-        num_round = 130
+        num_round = 140
         xgb_model = xgb.train(param, train, num_round, watchlist)
         # xgb_model = xgb.cv(param, all_train, num_round, nfold=5,
         #                    metrics={'error'})
         # print xgb_model.head()
         # xgb_model.info()
-
+        importance = xgb_model.get_fscore(fmap='xgb.fmap')
+        print importance
         prediction = xgb_model.predict(test)
+        xgb.plot_importance(xgb_model)
         test_id = pd.read_pickle('id_test')
         prediction = prediction * 2 + 1
         prediction[prediction > 3] = 3
