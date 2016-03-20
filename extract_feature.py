@@ -10,6 +10,9 @@ from sklearn.datasets import dump_svmlight_file
 import numpy as np
 from nltk.corpus import stopwords
 import store_data_in_pandas as sd
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.decomposition import TruncatedSVD
+from sklearn.metrics.pairwise import cosine_similarity
 
 stopwords_list = stopwords.words('english')
 stemmed_stopwords = [sd.stem_text(stop_word)
@@ -67,16 +70,39 @@ def modify_zero_and_one(x):
     else:
         return x
 
+
 def get_LSI_score(df):
     """
-
+    Add LSI score to each tuple.
     :param df: The whole data frame that holds all data and
                additionally contains the column 'product_info'
     :return: LSI Score of each search_term-product pair
     """
-    df[]
-
-
+    df['text'] = df['search_term'] + " " + df['product_title'] \
+                 + " " + df['product_description'] + " " \
+                 + df['attributes'] + " " + df['brand']
+    tuple_number = len(df['text'])
+    df_text_and_search_term\
+        = pd.concat((df['text'], df['search_term']), axis=0,
+                    ignore_index=True)
+    vectorizer = CountVectorizer(encoding='ascii',
+                                 stop_words=stemmed_stopwords)
+    text_matrix\
+        = vectorizer.fit_transform(df_text_and_search_term)
+    print 'get text matrix'
+    lsi_transformer = TruncatedSVD(n_components=120,
+                                   random_state=10)
+    reduced_vector = lsi_transformer.fit_transform(text_matrix)
+    print 'vector reduced'
+    similarity_one_dimension = np.zeros(tuple_number)
+    for i in range(tuple_number):
+        x = np.array(reduced_vector[i]).reshape(1, -1)
+        y = np.array(reduced_vector[i + tuple_number])\
+            .reshape(1, -1)
+        similarity_one_dimension[i]\
+            = cosine_similarity(x, y)
+    df['similarity'] = pd.Series(similarity_one_dimension)
+    return df.drop(['text'], axis=1)
 
 
 def main():
@@ -86,8 +112,10 @@ def main():
     df_train = None
 
     df_all = pd.read_pickle('df_all')
-    # print df_all.head(10)
-    # sys.exit()
+
+    df_all = get_LSI_score(df_all)
+    print 'LSI_score added.'
+
     # Coalesce all information into one column so we can apply
     # map to that one column
     df_all['product_info'] \
@@ -160,7 +188,8 @@ def main():
     print df_all['title_length']
     # Normalize all useful data in df
     for column in ['title_length', 'description_length',
-                   'attributes_length', 'brand_length']:
+                   'attributes_length', 'brand_length',
+                   'similarity']:
         df_all[column] \
             = df_all[column].map(lambda x: float(x))
         mean_word_in_title = df_all[column].mean()
