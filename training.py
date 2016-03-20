@@ -12,9 +12,10 @@ def main():
     X_test = pd.read_pickle('X_test').values
     y_train = pd.read_pickle('y_train').values
     rf = RandomForestRegressor(
-            n_estimators=50, max_depth=8, random_state=7)
-    clf = BaggingRegressor(rf, n_estimators=50, max_samples=0.1,
-                           random_state=25)
+            n_estimators=33, max_depth=8, random_state=7)
+    clf = BaggingRegressor(rf, n_estimators=70, max_samples=0.1,
+                           random_state=10,
+                           bootstrap_features=False, n_jobs=-1)
     clf.fit(X_train, y_train)
     rfr_prediction = clf.predict(X_test)
 
@@ -25,10 +26,10 @@ def main():
     # Set XGBRegressor with optimized parameters.
     xgb_model\
         = xgb.XGBRegressor(learning_rate=0.06, silent=True,
-                           objective="reg:logistic", gamma=2.3,
+                           objective="reg:logistic", gamma=2.25,
                            min_child_weight=5, subsample=0.8,
                            colsample_bytree=0.8, n_estimators=115,
-                           max_depth=9)
+                           max_depth=10)
 
     # make predictions with tuned parameters and XGBoost model
     xgb_model.fit(X_train, y_train)
