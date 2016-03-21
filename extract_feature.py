@@ -84,12 +84,12 @@ def get_LSI_score(df):
                  + " " + df['product_description'] + " " \
                  + df['attributes']
     tuple_number = len(df['text'])
-    df_text_and_search_term\
+    df_text_and_search_term \
         = pd.concat((df['text'], df['search_term']), axis=0,
                     ignore_index=True)
     vectorizer = TfidfVectorizer(encoding='ascii',
                                  stop_words=stemmed_stopwords)
-    text_matrix\
+    text_matrix \
         = vectorizer.fit_transform(df_text_and_search_term)
     print 'get text matrix'
     lsi_transformer = TruncatedSVD(n_components=120,
@@ -99,9 +99,9 @@ def get_LSI_score(df):
     similarity_one_dimension = np.zeros(tuple_number)
     for i in range(tuple_number):
         x = np.array(reduced_vector[i]).reshape(1, -1)
-        y = np.array(reduced_vector[i + tuple_number])\
+        y = np.array(reduced_vector[i + tuple_number]) \
             .reshape(1, -1)
-        similarity_one_dimension[i]\
+        similarity_one_dimension[i] \
             = cosine_similarity(x, y)
     df['similarity'] = pd.Series(similarity_one_dimension)
     return df.drop(['text'], axis=1)
@@ -136,7 +136,7 @@ def main():
     df_all['product_info'] \
         = df_all['search_term'] + "\t" + df_all['product_title'] \
           + "\t" + df_all['product_description'] + "\t" \
-          + df_all['attributes']
+          + df_all['attributes'] + "\t" + df_all['brand']
 
     # Count number of words in each column
     df_all['title_length'] \
@@ -147,6 +147,8 @@ def main():
         .map(lambda x: str(len(str(x.split('\t')[2]).split())))
     df_all['attributes_length'] = df_all['product_info'] \
         .map(lambda x: str(len(str(x.split('\t')[3]).split())))
+    df_all['brand_length'] = df_all['product_info'] \
+        .map(lambda x: str(len(str(x.split('\t')[4]).split())))
 
     # Coalesce all information into one column so we can apply
     # map to that one column
@@ -154,7 +156,8 @@ def main():
         = df_all['product_info'] + "\t" \
           + df_all['title_length'] + "\t" \
           + df_all['description_length'] + "\t" \
-          + df_all['attributes_length']
+          + df_all['attributes_length'] \
+          + "\t" + df_all['brand_length']
 
     # map find_occurrences to the separated information
     # and divide the result by length of the corresponding column
@@ -163,17 +166,22 @@ def main():
         .map(lambda x:
              find_occurrences(
                      x.split('\t')[0], x.split('\t')[1]) /
-             (float(x.split('\t')[4]) + 0.1))
+             (float(x.split('\t')[5]) + 0.1))
     df_all['word_in_description'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
                      x.split('\t')[0], x.split('\t')[2]) /
-             (float(x.split('\t')[5]) + 0.1))
+             (float(x.split('\t')[6]) + 0.1))
     df_all['word_in_attributes'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
                      x.split('\t')[0], x.split('\t')[3]) /
-             (float(x.split('\t')[6]) + 0.1))
+             (float(x.split('\t')[7]) + 0.1))
+    df_all['word_in_brand'] = df_all['product_info'] \
+        .map(lambda x:
+             find_occurrences(
+                     x.split('\t')[0], x.split('\t')[4]) /
+             (float(x.split('\t')[8]) + 0.1))
 
     # count common words in search term and each column
     df_all['common_in_title'] = df_all['product_info'] \
@@ -188,30 +196,36 @@ def main():
         .map(lambda x:
              find_common_word(
                      x.split('\t')[0], x.split('\t')[3]))
+    df_all['common_in_brand'] = df_all['product_info'] \
+        .map(lambda x:
+             find_common_word(
+                     x.split('\t')[0], x.split('\t')[4]))
 
     df_all['length_of_search_term'] = df_all['search_term'] \
         .map(lambda x: len(x))
 
     # count occurrences of last term in search query in each
     # column
-    df_all['last_search_term_in_title'] = df_all['product_info']\
+    df_all['last_search_term_in_title'] = df_all['product_info'] \
         .map(lambda x:
              find_common_word(
-                (x.split('\t')[0]).split()[-1], x.split('\t')[1]
+                     (x.split('\t')[0]).split()[-1],
+                     x.split('\t')[1]
              ))
-    df_all['last_search_term_in_description']\
-        = df_all['product_info']\
+    df_all['last_search_term_in_description'] \
+        = df_all['product_info'] \
         .map(lambda x:
              find_common_word(
-                (x.split('\t')[0]).split()[-1], x.split('\t')[2]
+                     (x.split('\t')[0]).split()[-1],
+                     x.split('\t')[2]
              ))
-    df_all['last_search_term_in_attributes']\
-        = df_all['product_info']\
+    df_all['last_search_term_in_attributes'] \
+        = df_all['product_info'] \
         .map(lambda x:
              find_common_word(
-                (x.split('\t')[0]).split()[-1], x.split('\t')[3]
+                     (x.split('\t')[0]).split()[-1],
+                     x.split('\t')[3]
              ))
-
 
     df_all = df_all.drop(['search_term', 'product_title',
                           'product_description', 'product_info',
@@ -219,7 +233,7 @@ def main():
 
     # Normalize all useful data in df
     for column in ['word_in_title', 'word_in_description',
-                   'word_in_attributes']:
+                   'word_in_attributes', 'word_in_brand']:
         df_all[column] \
             = df_all[column].map(lambda x: range_filter(float(x)))
         mean_word_in_title = df_all[column].mean()
@@ -232,9 +246,10 @@ def main():
 
     # Normalize all useful data in df
     for column in ['title_length', 'description_length',
-                   'attributes_length', 'similarity',
-                   'common_in_title',  'common_in_description',
-                   'common_in_attributes', 'length_of_search_term',
+                   'attributes_length', 'brand_length',
+                   'similarity', 'common_in_title',
+                   'common_in_description', 'common_in_attributes',
+                   'common_in_brand', 'length_of_search_term',
                    'last_search_term_in_title',
                    'last_search_term_in_description',
                    'last_search_term_in_attributes']:
