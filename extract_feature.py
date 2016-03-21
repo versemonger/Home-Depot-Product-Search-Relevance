@@ -41,7 +41,7 @@ def find_common_word(str1, str2):
     :param str2: a column of information of product
     :return: The number of words in str1 that appear in str2
     """
-    return sum([str2.find(word) for word in str1.split()
+    return sum([str2.find(word) >= 0 for word in str1.split()
                 if (word not in stemmed_stopwords) and
                 len(word) > 2])
 
@@ -179,40 +179,37 @@ def main():
     df_all['common_in_title'] = df_all['product_info'] \
         .map(lambda x:
              find_common_word(
-                     x.split('\t')[0], x.split('\t')[1]) /
-             (float(x.split('\t')[4]) + 0.1))
+                     x.split('\t')[0], x.split('\t')[1]))
     df_all['common_in_description'] = df_all['product_info'] \
         .map(lambda x:
              find_common_word(
-                     x.split('\t')[0], x.split('\t')[2]) /
-             (float(x.split('\t')[5]) + 0.1))
+                     x.split('\t')[0], x.split('\t')[2]))
     df_all['common_in_attributes'] = df_all['product_info'] \
         .map(lambda x:
              find_common_word(
-                     x.split('\t')[0], x.split('\t')[3]) /
-             (float(x.split('\t')[6]) + 0.1))
+                     x.split('\t')[0], x.split('\t')[3]))
 
-    df_all['length_of_search_term'] = df_all['search_term'].\
-        map(lambda x: len(x))
+    df_all['length_of_search_term'] = df_all['search_term'] \
+        .map(lambda x: len(x))
 
     # count occurrences of last term in search query in each
     # column
     df_all['last_search_term_in_title'] = df_all['product_info']\
         .map(lambda x:
              find_common_word(
-                (x.split('\t')[0])[-1], x.split('\t')[1]
+                (x.split('\t')[0]).split()[-1], x.split('\t')[1]
              ))
     df_all['last_search_term_in_description']\
         = df_all['product_info']\
         .map(lambda x:
              find_common_word(
-                (x.split('\t')[0])[-1], x.split('\t')[2]
+                (x.split('\t')[0]).split()[-1], x.split('\t')[2]
              ))
     df_all['last_search_term_in_attributes']\
         = df_all['product_info']\
         .map(lambda x:
              find_common_word(
-                (x.split('\t')[0])[-1], x.split('\t')[3]
+                (x.split('\t')[0]).split()[-1], x.split('\t')[3]
              ))
 
     df_all = df_all.drop(['search_term', 'product_title',
@@ -235,7 +232,7 @@ def main():
     # Normalize all useful data in df
     for column in ['title_length', 'description_length',
                    'attributes_length', 'similarity',
-                   'common_in_title',  'common_in_description'
+                   'common_in_title',  'common_in_description',
                    'common_in_attributes', 'length_of_search_term',
                    'last_search_term_in_title',
                    'last_search_term_in_description',
