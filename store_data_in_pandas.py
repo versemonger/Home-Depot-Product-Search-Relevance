@@ -6,10 +6,11 @@ term in each column of the tuple.
 """
 import re
 import pandas as pd
-import unicodedata
-from nltk.stem.snowball import SnowballStemmer
+from nltk.stem.porter import PorterStemmer
+# from nltk.stem.snowball import SnowballStemmer
 
-stemmer = SnowballStemmer('english')
+# stemmer = SnowballStemmer('english')
+stemmer = PorterStemmer()
 strNum = {'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4,
           'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9}
 
@@ -83,6 +84,7 @@ def stem_text(s):
     s = " ".join([str(strNum[z])
                   if z in strNum else z for z in s.split(" ")])
     s = " ".join([stemmer.stem(z) for z in s.split(" ")])
+
     s = s.lower()
     s = s.replace("toliet", "toilet")
     s = s.replace("airconditioner", "air conditioner")
@@ -95,13 +97,7 @@ def stem_text(s):
     s = s.replace("whirpool", "whirlpool")
     s = s.replace("whirlpoolga", "whirlpool ga")
     s = s.replace("whirlpoolstainless", "whirlpool stainless")
-
-    # the remove method is a destructive method
-    # which returns a new string...
-    # so you cannot leverage it without assignment.
-
-    return " ".join([stemmer.stem(word) for word in
-                     s.lower().split()])
+    return s
 
 
 def main():
