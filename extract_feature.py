@@ -212,6 +212,7 @@ def main():
                 (x.split('\t')[0]).split()[-1], x.split('\t')[3]
              ))
 
+
     df_all = df_all.drop(['search_term', 'product_title',
                           'product_description', 'product_info',
                           'attributes', 'brand'], axis=1)
