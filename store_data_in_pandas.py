@@ -37,18 +37,22 @@ def stem_text(s):
     # s = unicodedata \
     #     .normalize('NFD', unicode(s)).encode('ascii', 'ignore')
     # Split words with a.A
+
+    # This is necessary, otherwise you will get into trouble when
+    # you make coalesce and split in extract_feature.py
+    s = s.replace('\t', ' ')
     s = re.sub(r"(\w)\.([A-Z])", r"\1 \2", s)
     s = s.lower()
+    s = s.replace(",", " ")
     s = s.replace("  ", " ")
-    s = s.replace(",", "")  # could be number / segment later
     s = s.replace("$", " ")
     s = s.replace("?", " ")
     s = s.replace("-", " ")
     s = s.replace("//", "/")
-    s = s.replace("..", ".")
+    s = s.replace("..", " ")
     s = s.replace(" / ", " ")
     s = s.replace(" \\ ", " ")
-    s = s.replace(".", " . ")
+    s = s.replace(".", " ")
     s = re.sub(r"(^\.|/)", r"", s)
     s = re.sub(r"(\.|/)$", r"", s)
     s = re.sub(r"([0-9])([a-z])", r"\1 \2", s)
@@ -97,6 +101,7 @@ def stem_text(s):
     s = s.replace("whirpool", "whirlpool")
     s = s.replace("whirlpoolga", "whirlpool ga")
     s = s.replace("whirlpoolstainless", "whirlpool stainless")
+
     return s
 
 
