@@ -10,7 +10,7 @@ from sklearn.datasets import dump_svmlight_file
 import numpy as np
 from nltk.corpus import stopwords
 import store_data_in_pandas as sd
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -34,15 +34,16 @@ def find_occurrences(str1, str2):
                 len(word) > 2])
 
 
-def find_occurrences_modified(str1, str2):
+def find_common_word(str1, str2):
     """
-    find how many words in str1 appear at least once in str2
+    find number of common words in str1 and str2
     :param str1: search term
     :param str2: a column of information of product
     :return: The number of words in str1 that appear in str2
     """
     return sum([str2.find(word) for word in str1.split()
-                if word not in stemmed_stopwords])
+                if (word not in stemmed_stopwords) and
+                len(word) > 2])
 
 
 def range_filter(x):
@@ -81,12 +82,12 @@ def get_LSI_score(df):
     """
     df['text'] = df['search_term'] + " " + df['product_title'] \
                  + " " + df['product_description'] + " " \
-                 + df['attributes'] + " " + df['brand']
+                 + df['attributes']
     tuple_number = len(df['text'])
     df_text_and_search_term\
         = pd.concat((df['text'], df['search_term']), axis=0,
                     ignore_index=True)
-    vectorizer = CountVectorizer(encoding='ascii',
+    vectorizer = TfidfVectorizer(encoding='ascii',
                                  stop_words=stemmed_stopwords)
     text_matrix\
         = vectorizer.fit_transform(df_text_and_search_term)
@@ -137,7 +138,7 @@ def main():
           + "\t" + df_all['product_description'] + "\t" \
           + df_all['attributes']
 
-    # Count number of characters in each column
+    # Count number of words in each column
     df_all['title_length'] \
         = df_all['product_info'] \
         .map(lambda x: str(len(str(x.split('\t')[1]).split())))
@@ -174,6 +175,46 @@ def main():
                      x.split('\t')[0], x.split('\t')[3]) /
              (float(x.split('\t')[6]) + 0.1))
 
+    # count common words in search term and each column
+    df_all['common_in_title'] = df_all['product_info'] \
+        .map(lambda x:
+             find_common_word(
+                     x.split('\t')[0], x.split('\t')[1]) /
+             (float(x.split('\t')[4]) + 0.1))
+    df_all['common_in_description'] = df_all['product_info'] \
+        .map(lambda x:
+             find_common_word(
+                     x.split('\t')[0], x.split('\t')[2]) /
+             (float(x.split('\t')[5]) + 0.1))
+    df_all['common_in_attributes'] = df_all['product_info'] \
+        .map(lambda x:
+             find_common_word(
+                     x.split('\t')[0], x.split('\t')[3]) /
+             (float(x.split('\t')[6]) + 0.1))
+
+    df_all['length_of_search_term'] = df_all['search_term'].\
+        map(lambda x: len(x))
+
+    # count occurrences of last term in search query in each
+    # column
+    df_all['last_search_term_in_title'] = df_all['product_info']\
+        .map(lambda x:
+             find_common_word(
+                (x.split('\t')[0])[-1], x.split('\t')[1]
+             ))
+    df_all['last_search_term_in_description']\
+        = df_all['product_info']\
+        .map(lambda x:
+             find_common_word(
+                (x.split('\t')[0])[-1], x.split('\t')[2]
+             ))
+    df_all['last_search_term_in_attributes']\
+        = df_all['product_info']\
+        .map(lambda x:
+             find_common_word(
+                (x.split('\t')[0])[-1], x.split('\t')[3]
+             ))
+
     df_all = df_all.drop(['search_term', 'product_title',
                           'product_description', 'product_info',
                           'attributes', 'brand'], axis=1)
@@ -191,10 +232,14 @@ def main():
                 lambda x: (x - mean_word_in_title)
                           / std_word_in_title)
 
-    print df_all['title_length']
     # Normalize all useful data in df
     for column in ['title_length', 'description_length',
-                   'attributes_length', 'similarity']:
+                   'attributes_length', 'similarity',
+                   'common_in_title',  'common_in_description'
+                   'common_in_attributes', 'length_of_search_term',
+                   'last_search_term_in_title',
+                   'last_search_term_in_description',
+                   'last_search_term_in_attributes']:
         df_all[column] \
             = df_all[column].map(lambda x: float(x))
         mean_word_in_title = df_all[column].mean()
