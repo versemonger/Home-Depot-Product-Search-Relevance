@@ -30,7 +30,8 @@ def find_occurrences(str1, str2):
     :return:
     """
     return sum([str2.count(word) for word in str1.split()
-                if word not in stemmed_stopwords])
+                if (word not in stemmed_stopwords) and
+                len(word) > 2])
 
 
 def find_occurrences_modified(str1, str2):
@@ -252,6 +253,9 @@ def main():
             ['id', 'relevance'], axis=1).values
     dump_svmlight_file(X_train, y_train, 'all_train_libSVM.dat',
                        zero_based=True, multilabel=False)
+
+    # dump libSVM training data into two files: training data and
+    # validation data
     validation_num = train_num / 4
     dump_svmlight_file(X_train[: train_num - validation_num],
                        y_train[: train_num - validation_num],
