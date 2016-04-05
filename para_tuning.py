@@ -30,8 +30,8 @@ def clean_result(x):
 
 def main():
     tune_XGB = False
-    tune_RFR = True
-    train_XGB = False
+    tune_RFR = False
+    train_XGB = True
     X_train = pd.read_pickle('X_train').values
     X_test = pd.read_pickle('X_test').values
     y_train = pd.read_pickle('y_train').values
@@ -39,14 +39,13 @@ def main():
         rmse = make_scorer(fmean_squared_error,
                            greater_is_better=False)
         rf = RandomForestRegressor(n_jobs=-1, n_estimators=33,
-                                   max_depth=8, random_state=7)
+                                   max_depth=8)
         # set bagging model
         clf = BaggingRegressor(
-            rf, n_estimators=70, random_state=10,
-            n_jobs=1, bootstrap_features=False)
+            rf, n_estimators=70, n_jobs=1,
+            bootstrap_features=False)
         # optimal in the following: 70, 10, False
-        param_grid = {'n_estimators': [50, 60, 70],
-                      'random_state': [10, 20, 30],
+        param_grid = {'n_estimators': [60, 70, 80],
                       'bootstrap_features': [True, False]}
 
         # Do grid search with a set of parameters for XGBoost.
@@ -77,13 +76,13 @@ def main():
         xgb_model\
             = xgb.XGBRegressor(learning_rate=0.06, silent=True,
                                objective="reg:logistic",
-                               gamma=2.25, min_child_weight=5,
+                               gamma=2.15, min_child_weight=5,
                                subsample=0.8, scale_pos_weight=0.9,
                                colsample_bytree=0.8,
-                               n_estimators=115, max_depth=10)
-        # optimal 10, 2.25
-        param_grid = {'max_depth': [9, 10, 11, 12],
-                      'gamma': [2.15, 2.25, 2.30]}
+                               n_estimators=103, max_depth=9)
+        # optimal 9, 2.15
+        param_grid = {'max_depth': [8, 9, 10],
+                      'gamma': [2.05, 2.15, 2.20]}
 
         # Do grid search with a set of parameters for XGBoost.
         model \
@@ -102,13 +101,13 @@ def main():
         all_train = xgb.DMatrix('all_train_libSVM.dat')
         test = xgb.DMatrix('test_libSVM.dat')
         validation = xgb.DMatrix('validate_libSVM.dat')
-        param = {'max_depth': 9, 'eta': 0.06, 'silent': 1,
-                 'objective': 'reg:logistic', 'gamma': 2.3,
+        param = {'max_depth': 9, 'eta': 0.025, 'silent': 1,
+                 'objective': 'reg:logistic', 'gamma': 2.15,
                  'subsample': 0.8, 'colsample_bytree': 0.8,
                  'min_child_weight': 5}
 
         watchlist = [(validation, 'eval'), (train, 'train')]
-        num_round = 140
+        num_round = 150
         xgb_model = xgb.train(param, train, num_round, watchlist)
         # xgb_model = xgb.cv(param, all_train, num_round, nfold=5,
         #                    metrics={'error'})
