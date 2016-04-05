@@ -1,7 +1,6 @@
-from sklearn.ensemble \
-    import RandomForestRegressor, BaggingRegressor
+from sklearn.ensemble import RandomForestRegressor
 import xgboost as xgb
-
+from sklearn.neural_network import MLPRegressor
 
 import pandas as pd
 import sys
@@ -11,13 +10,10 @@ def main():
     X_train = pd.read_pickle('X_train').values
     X_test = pd.read_pickle('X_test').values
     y_train = pd.read_pickle('y_train').values
-    rf = RandomForestRegressor(
-            n_estimators=33, max_depth=8, random_state=7)
-    clf = BaggingRegressor(rf, n_estimators=70, max_samples=0.1,
-                           random_state=10,
-                           bootstrap_features=False, n_jobs=-1)
-    clf.fit(X_train, y_train)
-    rfr_prediction = clf.predict(X_test)
+    rf = RandomForestRegressor(n_estimators=60, max_depth=8,
+                               random_state=7, n_jobs=-1)
+    rf.fit(X_train, y_train)
+    rfr_prediction = rf.predict(X_test)
 
     # # Output the result
     # pd.DataFrame({"id": id_test, "relevance": y_prediction}) \
@@ -25,15 +21,24 @@ def main():
 
     # Set XGBRegressor with optimized parameters.
     xgb_model\
-        = xgb.XGBRegressor(learning_rate=0.06, silent=True,
-                           objective="reg:logistic", gamma=2.25,
+        = xgb.XGBRegressor(learning_rate=0.025, silent=True,
+                           objective="reg:logistic", gamma=2.15,
                            min_child_weight=5, subsample=0.8,
-                           colsample_bytree=0.8, n_estimators=115,
-                           max_depth=10)
+                           colsample_bytree=0.8, n_estimators=101,
+                           max_depth=9)
 
     # make predictions with tuned parameters and XGBoost model
     xgb_model.fit(X_train, y_train)
     xgb_prediction = xgb_model.predict(X_test)
+
+    # # Use MPLRegressor
+    # nn_model = MLPRegressor(activation='logistic',
+    #                         learning_rate='adaptive',
+    #                         learning_rate_init=0.005,
+    #                         epsilon=1e-7)
+    # nn_model.fit(X_train, y_train)
+    # nn_prediction = nn_model.predict(X_test)
+
     print xgb_prediction[:20]
     print rfr_prediction[:20]
     # ensemble result of two models
