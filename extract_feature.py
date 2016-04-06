@@ -277,8 +277,8 @@ def main():
 
     print 'Last search term items counted'
     # preserve the strings for svd reduction.
-    df_info = df_all['search_term', 'product_title',
-                     'product_description', 'attributes', 'brand']
+    df_info = df_all[['search_term', 'product_title',
+                     'product_description', 'attributes', 'brand']]
 
     df_all = df_all.drop(['search_term', 'product_title',
                           'product_description', 'product_info',
