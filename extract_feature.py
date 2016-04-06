@@ -19,6 +19,8 @@ stemmed_stopwords = [sd.stem_text(stop_word)
                      for stop_word in stopwords_list]
 
 SVD_component_num = 10
+
+
 def find_occurrences(str1, str2):
     """
     find in str2 occurrences of each word in str1
@@ -85,12 +87,11 @@ def all_SVD_transform(df):
     reduced_matrix = single_feature_SVD_transform(df, first_term)
     for feature in feature_list:
         if feature != 'search_term':
-            reduced_matrix\
-                = np.append(reduced_matrix,
-                            single_feature_SVD_transform(df,
-                                                         feature),
+            reduced_feature \
+                = single_feature_SVD_transform(df, feature)
+            reduced_matrix \
+                = np.append(reduced_matrix, reduced_feature,
                             axis=1)
-            print np.shape(reduced_matrix), reduced_matrix[0:2]
     return reduced_matrix
 
 
@@ -105,7 +106,7 @@ def single_feature_SVD_transform(df, feature):
     vectorizer = TfidfVectorizer(encoding='ascii',
                                  stop_words=stemmed_stopwords,
                                  ngram_range=(1, 1))
-    feature_matrix = vectorizer\
+    feature_matrix = vectorizer \
         .fit_transform(df[feature].apply(str))
     reducer = TruncatedSVD(n_components=SVD_component_num,
                            random_state=1992)
@@ -114,32 +115,31 @@ def single_feature_SVD_transform(df, feature):
     return np.array(result)
 
 
-
-
-def get_LSI_score(df):
+def get_saperate_LSI_score(df, feature_name):
     """
     Add LSI score to each tuple.
     :param df: The whole data frame that holds all data and
                additionally contains the column 'product_info'
     :return: LSI Score of each search_term-product pair
     """
-    df['text'] = df['search_term'] + " " + df['product_title'] \
-                 + " " + df['product_description'] + " " \
-                 + df['attributes']
-    tuple_number = len(df['text'])
+    if feature_name == 'text':
+        df['text'] = df['search_term'] + " " + df['product_title'] \
+                     + " " + df['product_description'] + " " \
+                     + df['attributes']
+    tuple_number = len(df[feature_name])
     df_text_and_search_term \
-        = pd.concat((df['text'], df['search_term']), axis=0,
+        = pd.concat((df[feature_name], df['search_term']), axis=0,
                     ignore_index=True)
     vectorizer = TfidfVectorizer(encoding='ascii',
                                  stop_words=stemmed_stopwords,
                                  ngram_range=(1, 1))
     text_matrix \
         = vectorizer.fit_transform(df_text_and_search_term)
-    print 'get text matrix'
+    print 'get ' + feature_name + ' matrix'
     lsi_transformer = TruncatedSVD(n_components=120,
                                    random_state=10)
     reduced_vector = lsi_transformer.fit_transform(text_matrix)
-    print 'vector reduced'
+    print 'vector of ' + feature_name + ' reduced'
     similarity_one_dimension = np.zeros(tuple_number)
     for i in range(tuple_number):
         x = np.array(reduced_vector[i]).reshape(1, -1)
@@ -147,8 +147,10 @@ def get_LSI_score(df):
             .reshape(1, -1)
         similarity_one_dimension[i] \
             = cosine_similarity(x, y)
-    df['similarity'] = pd.Series(similarity_one_dimension)
-    return df.drop(['text'], axis=1)
+    df['similarity in ' + feature_name] = \
+        pd.Series(similarity_one_dimension)
+    if feature_name == 'text':
+        df.drop(['text'], axis=1, inplace=True)
 
 
 def create_feature_map(features):
@@ -171,8 +173,10 @@ def main():
     df_train = None
 
     df_all = pd.read_pickle('df_all')
-
-    df_all = get_LSI_score(df_all)
+    feature_list = ['product_title', 'product_description',
+                    'attributes', 'brand', 'text']
+    for feature in feature_list:
+        get_saperate_LSI_score(df_all, feature)
     print 'LSI_score added.'
 
     # Coalesce all information into one column so we can apply
@@ -278,11 +282,12 @@ def main():
     print 'Last search term items counted'
     # preserve the strings for svd reduction.
     df_info = df_all[['search_term', 'product_title',
-                     'product_description', 'attributes', 'brand']]
+                      'product_description', 'attributes',
+                      'brand']]
 
-    df_all = df_all.drop(['search_term', 'product_title',
-                          'product_description', 'product_info',
-                          'attributes', 'brand'], axis=1)
+    df_all.drop(['search_term', 'product_title',
+                 'product_description', 'product_info',
+                 'attributes', 'brand'], axis=1, inplace=True)
 
     # Normalize all useful data in df
     for column in ['word_in_title', 'word_in_description',
@@ -397,6 +402,7 @@ def main():
         for i in range(SVD_component_num):
             features.append(feature + '_' + str(i + 1))
     create_feature_map(features)
+
 
 if __name__ == '__main__':
     main()
