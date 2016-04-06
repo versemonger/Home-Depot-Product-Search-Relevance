@@ -19,6 +19,8 @@ stemmed_stopwords = [sd.stem_text(stop_word)
                      for stop_word in stopwords_list]
 
 SVD_component_num = 10
+# We will be normalize data named with these features.
+normalize_feature_list = []
 
 
 def find_occurrences(str1, str2):
@@ -147,8 +149,9 @@ def get_saperate_LSI_score(df, feature_name):
             .reshape(1, -1)
         similarity_one_dimension[i] \
             = cosine_similarity(x, y)
-    df['similarity in ' + feature_name] = \
-        pd.Series(similarity_one_dimension)
+    new_feature = 'similarity in ' + feature_name
+    normalize_feature_list.append(new_feature)
+    df[new_feature] = pd.Series(similarity_one_dimension)
     if feature_name == 'text':
         df.drop(['text'], axis=1, inplace=True)
 
@@ -290,6 +293,8 @@ def main():
                  'attributes', 'brand'], axis=1, inplace=True)
 
     # Normalize all useful data in df
+    # A range filter is used here so that we filter too large
+    # numbers
     for column in ['word_in_title', 'word_in_description',
                    'word_in_attributes', 'word_in_brand']:
         df_all[column] \
@@ -303,14 +308,17 @@ def main():
                           / std_word_in_title)
 
     # Normalize all useful data in df
-    for column in ['title_length', 'description_length',
-                   'attributes_length', 'brand_length',
-                   'similarity', 'common_in_title',
-                   'common_in_description', 'common_in_attributes',
-                   'common_in_brand', 'length_of_search_term',
-                   'last_search_term_in_title',
-                   'last_search_term_in_description',
-                   'last_search_term_in_attributes']:
+    feature_names = ['title_length', 'description_length',
+                     'attributes_length', 'brand_length',
+                     'common_in_title',
+                     'common_in_description',
+                     'common_in_attributes',
+                     'common_in_brand', 'length_of_search_term',
+                     'last_search_term_in_title',
+                     'last_search_term_in_description',
+                     'last_search_term_in_attributes']
+    normalize_feature_list.extend(feature_names)
+    for column in normalize_feature_list:
         df_all[column] \
             = df_all[column].map(lambda x: float(x))
         mean_word_in_title = df_all[column].mean()
