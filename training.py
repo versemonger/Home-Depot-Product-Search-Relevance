@@ -1,15 +1,15 @@
 from sklearn.ensemble import RandomForestRegressor
 import xgboost as xgb
 from sklearn.neural_network import MLPRegressor
-
+import numpy as np
 import pandas as pd
 import sys
 
 
 def main():
-    X_train = pd.read_pickle('X_train').values
-    X_test = pd.read_pickle('X_test').values
-    y_train = pd.read_pickle('y_train').values
+    X_train = np.load('X_train_with_SVD.npy')
+    X_test = pd.load('X_test_with_SVD.npy')
+    y_train = pd.load('Y_train.npy')
     rf = RandomForestRegressor(n_estimators=60, max_depth=8,
                                random_state=7, n_jobs=-1)
     rf.fit(X_train, y_train)
