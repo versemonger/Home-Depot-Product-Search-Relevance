@@ -18,7 +18,7 @@ stopwords_list = stopwords.words('english')
 stemmed_stopwords = [sd.stem_text(stop_word)
                      for stop_word in stopwords_list]
 
-
+SVD_component_num = 10
 def find_occurrences(str1, str2):
     """
     find in str2 occurrences of each word in str1
@@ -73,6 +73,49 @@ def modify_zero_and_one(x):
         return x
 
 
+def all_SVD_transform(df):
+    """
+
+    :param df: the whole pandas data frame
+    :return: a data matrix of reduced dimension
+    """
+    feature_list = ['search_term', 'product_title',
+                    'product_description', 'attributes', 'brand']
+    first_term = 'search_term'
+    reduced_matrix = single_feature_SVD_transform(df, first_term)
+    for feature in feature_list:
+        if feature != 'search_term':
+            reduced_matrix\
+                = np.append(reduced_matrix,
+                            single_feature_SVD_transform(df,
+                                                         feature),
+                            axis=1)
+            print np.shape(reduced_matrix), reduced_matrix[0:2]
+    return reduced_matrix
+
+
+def single_feature_SVD_transform(df, feature):
+    """
+    TfidfVectorize the feature column and reduce the dimension
+    by SVD transformation
+    :param feature: name of the transformed feature
+    :param df: the whole data_frame
+    :return: dimension reduced numpy matrix
+    """
+    vectorizer = TfidfVectorizer(encoding='ascii',
+                                 stop_words=stemmed_stopwords,
+                                 ngram_range=(1, 1))
+    feature_matrix = vectorizer\
+        .fit_transform(df[feature].apply(str))
+    reducer = TruncatedSVD(n_components=SVD_component_num,
+                           random_state=1992)
+    result = reducer.fit_transform(feature_matrix)
+    print "Finish reducing dimensionality of " + feature
+    return np.array(result)
+
+
+
+
 def get_LSI_score(df):
     """
     Add LSI score to each tuple.
@@ -88,7 +131,8 @@ def get_LSI_score(df):
         = pd.concat((df['text'], df['search_term']), axis=0,
                     ignore_index=True)
     vectorizer = TfidfVectorizer(encoding='ascii',
-                                 stop_words=stemmed_stopwords)
+                                 stop_words=stemmed_stopwords,
+                                 ngram_range=(1, 1))
     text_matrix \
         = vectorizer.fit_transform(df_text_and_search_term)
     print 'get text matrix'
@@ -150,6 +194,7 @@ def main():
     df_all['brand_length'] = df_all['product_info'] \
         .map(lambda x: str(len(str(x.split('\t')[4]).split())))
 
+    print "Number of words in each column is counted."
     # Coalesce all information into one column so we can apply
     # map to that one column
     df_all['product_info'] \
@@ -183,6 +228,8 @@ def main():
                      x.split('\t')[0], x.split('\t')[4]) /
              (float(x.split('\t')[8]) + 0.1))
 
+    print 'Word occurrences in each column counted'
+
     # count common words in search term and each column
     df_all['common_in_title'] = df_all['product_info'] \
         .map(lambda x:
@@ -200,6 +247,7 @@ def main():
         .map(lambda x:
              find_common_word(
                      x.split('\t')[0], x.split('\t')[4]))
+    print 'Common word in each column counted'
 
     df_all['length_of_search_term'] = df_all['search_term'] \
         .map(lambda x: len(x))
@@ -226,6 +274,11 @@ def main():
                      (x.split('\t')[0]).split()[-1],
                      x.split('\t')[3]
              ))
+
+    print 'Last search term items counted'
+    # preserve the strings for svd reduction.
+    df_info = df_all['search_term', 'product_title',
+                     'product_description', 'attributes', 'brand']
 
     df_all = df_all.drop(['search_term', 'product_title',
                           'product_description', 'product_info',
@@ -263,7 +316,7 @@ def main():
             .map(
                 lambda x: (x - mean_word_in_title)
                           / std_word_in_title)
-
+    print "normalized"
     df_all['relevance'] = df_all['relevance'] \
         .map(lambda x: (x - 1) / 2.)
     df_all['relevance'] = df_all['relevance'] \
@@ -274,15 +327,16 @@ def main():
     id_test = df_test['id']
     id_test.to_pickle('id_test')
 
-    # Output targets of training data, training data, testing data
-    # to pd frame file
-    df_train['relevance'].to_pickle('y_train')
-    df_train \
-        .drop(['id', 'relevance'], axis=1) \
-        .to_pickle('X_train')
-    df_test \
-        .drop(['id', 'relevance'], axis=1) \
-        .to_pickle('X_test')
+    # # Output targets of training data, training data, testing
+    #  data
+    # # to pd frame file
+    # df_train['relevance'].to_pickle('y_train')
+    # df_train \
+    #     .drop(['id', 'relevance'], axis=1) \
+    #     .to_pickle('X_train')
+    # df_test \
+    #     .drop(['id', 'relevance'], axis=1) \
+    #     .to_pickle('X_test')
 
     # This snippet of code drops 'product_uid' as well,
     # which may be however useful in this project because
@@ -298,17 +352,26 @@ def main():
     #     .drop(['id', 'relevance', 'product_uid'], axis=1)\
     #     .to_pickle('X_test')
 
+    truncate_svd_values = all_SVD_transform(df_info)
+
     # output the feature data to libSVM files.
     y_train = df_train['relevance'].values
     X_train = df_train.drop(
             ['id', 'relevance'], axis=1).values
+    X_train = np.append(X_train,
+                        truncate_svd_values[:train_num],
+                        axis=1)
 
-    features = list(
-            df_train.drop(['id', 'relevance'], axis=1).columns[0:])
-
-    create_feature_map(features)
     X_test = df_test.drop(
             ['id', 'relevance'], axis=1).values
+    X_test = np.append(X_test,
+                       truncate_svd_values[train_num:],
+                       axis=1)
+    np.save('X_train_with_SVD', np.nan_to_num(X_train))
+    np.save('X_test_with_SVD', np.nan_to_num(X_test))
+    np.save('Y_train', y_train)
+    print 'Data saved to npy files.'
+    # output the feature data to libSVM files.
     dump_svmlight_file(X_train, y_train, 'all_train_libSVM.dat',
                        zero_based=True, multilabel=False)
 
@@ -326,7 +389,14 @@ def main():
     test_file_label = np.zeros(len(X_test))
     dump_svmlight_file(X_test, test_file_label, 'test_libSVM.dat',
                        zero_based=True, multilabel=False)
-
+    features = list(
+            df_train.drop(['id', 'relevance'], axis=1).columns[0:])
+    feature_list = ['search_term', 'product_title',
+                    'product_description', 'attributes', 'brand']
+    for feature in feature_list:
+        for i in range(SVD_component_num):
+            features.append(feature + '_' + str(i + 1))
+    create_feature_map(features)
 
 if __name__ == '__main__':
     main()
