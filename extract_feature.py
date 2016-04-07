@@ -2,8 +2,8 @@
 Adapted from https://www.kaggle.com/wenxuanchen/home-depot-product-search-relevance/sklearn-random-forest
 This script basically counts the occurrences of each word of search
 term in different part of information of the products.
+http://orion.lcg.ufrj.br/Dr.Dobbs/books/book5/chap14.htm
 """
-
 import pandas as pd
 import sys
 from sklearn.datasets import dump_svmlight_file
@@ -13,6 +13,7 @@ import store_data_in_pandas as sd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
 from sklearn.metrics.pairwise import cosine_similarity
+from scipy.stats import entropy
 
 stopwords_list = stopwords.words('english')
 stemmed_stopwords = [sd.stem_text(stop_word)
@@ -143,15 +144,21 @@ def get_saperate_LSI_score(df, feature_name):
     reduced_vector = lsi_transformer.fit_transform(text_matrix)
     print 'vector of ' + feature_name + ' reduced'
     similarity_one_dimension = np.zeros(tuple_number)
+    KL_similarity = np.zeros(tuple_number)
     for i in range(tuple_number):
-        x = np.array(reduced_vector[i]).reshape(1, -1)
-        y = np.array(reduced_vector[i + tuple_number]) \
-            .reshape(1, -1)
+        v1 = np.array(reduced_vector[i])
+        v2 = np.array(reduced_vector[i + tuple_number])
+        x = v1.reshape(1, -1)
+        y = v2.reshape(1, -1)
         similarity_one_dimension[i] \
             = cosine_similarity(x, y)
+        KL_similarity[i] = entropy(v1, v2)
     new_feature = 'similarity in ' + feature_name
+    new_feature2 = 'KL similarity ' + feature_name
     normalize_feature_list.append(new_feature)
+    normalize_feature_list.append(new_feature2)
     df[new_feature] = pd.Series(similarity_one_dimension)
+    df[new_feature2] = pd.Series(KL_similarity)
     if feature_name == 'text':
         df.drop(['text'], axis=1, inplace=True)
 
@@ -253,10 +260,10 @@ def main():
         .map(lambda x:
              find_common_word(
                      x.split('\t')[0], x.split('\t')[3]))
-    # df_all['common_in_brand'] = df_all['product_info'] \
-    #     .map(lambda x:
-    #          find_common_word(
-    #                  x.split('\t')[0], x.split('\t')[4]))
+    df_all['common_in_brand'] = df_all['product_info'] \
+        .map(lambda x:
+             find_common_word(
+                     x.split('\t')[0], x.split('\t')[4]))
     print 'Common word in each column counted'
 
     df_all['length_of_search_term'] = df_all['search_term'] \
@@ -316,7 +323,7 @@ def main():
                      'common_in_title',
                      'common_in_description',
                      'common_in_attributes',
-                     # 'common_in_brand',
+                     'common_in_brand',
                      'length_of_search_term',
                      'last_search_term_in_title',
                      'last_search_term_in_description',
