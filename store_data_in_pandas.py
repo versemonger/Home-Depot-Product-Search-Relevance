@@ -7,6 +7,45 @@ term in each column of the tuple.
 import re
 import pandas as pd
 from nltk.stem.porter import PorterStemmer
+import requests
+import re
+import time
+from random import randint
+
+START_SPELL_CHECK = \
+    "<span class=\"spell\">Showing results for</span>"
+END_SPELL_CHECK = \
+    "<br><span class=\"spell_orig\">Search instead for"
+
+HTML_Codes = (
+    ("'", '&#39;'),
+    ('"', '&quot;'),
+    ('>', '&gt;'),
+    ('<', '&lt;'),
+    ('&', '&amp;'),
+)
+
+
+def spell_check(s):
+    q = '+'.join(s.split())
+    time.sleep(
+        randint(0, 2))  # relax and don't let google be angry
+    r = requests.get("https://www.google.com/search?q=" + q)
+    content = r.text
+    start = content.find(START_SPELL_CHECK)
+    if (start > -1):
+        start = start + len(START_SPELL_CHECK)
+        end = content.find(END_SPELL_CHECK)
+        search = content[start:end]
+        search = re.sub(r'<[^>]+>', '', search)
+        for code in HTML_Codes:
+            search = search.replace(code[1], code[0])
+        search = search[1:]
+    else:
+        search = s
+    return search;
+
+
 # from nltk.stem.snowball import SnowballStemmer
 
 # stemmer = SnowballStemmer('english')
@@ -34,6 +73,7 @@ def stem_text(s):
     if type(s) in {int, float}:
         return str(s)
     s = remove_non_ascii(s)
+    s = spell_check(s)
     # s = unicodedata \
     #     .normalize('NFD', unicode(s)).encode('ascii', 'ignore')
     # Split words with a.A
@@ -76,7 +116,7 @@ def stem_text(s):
     s = re.sub(r"([0-9]+)( *)(ounces|ounce|oz)\.?", r"\1oz. ", s)
     s = re.sub(r"([0-9]+)( *)(centimeters|cm)\.?", r"\1cm. ", s)
     s = re.sub(r"([0-9]+)( *)(milimeters|mm)\.?", r"\1mm. ", s)
-   
+
     s = re.sub(r"([0-9]+)( *)(degrees|degree)\.?", r"\1deg. ", s)
     s = s.replace(" v ", " volts ")
     s = re.sub(r"([0-9]+)( *)(volts|volt)\.?", r"\1volt. ", s)
@@ -116,7 +156,7 @@ def main():
     df_brand = df_product_attribute \
         [df_product_attribute.name == "MFG Brand Name"] \
         [['product_uid', 'value']].rename(
-        columns={'value': 'brand'})
+            columns={'value': 'brand'})
 
     # extract product id and attribute values
     df_product_attribute_selected \
