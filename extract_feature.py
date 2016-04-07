@@ -176,8 +176,11 @@ def main():
     df_train = None
 
     df_all = pd.read_pickle('df_all')
+    # feature_list = ['product_title', 'product_description',
+    #                 'attributes', 'brand', 'text']
     feature_list = ['product_title', 'product_description',
-                    'attributes', 'brand', 'text']
+                    'attributes', 'text']
+
     for feature in feature_list:
         get_saperate_LSI_score(df_all, feature)
     print 'LSI_score added.'
@@ -250,10 +253,10 @@ def main():
         .map(lambda x:
              find_common_word(
                      x.split('\t')[0], x.split('\t')[3]))
-    df_all['common_in_brand'] = df_all['product_info'] \
-        .map(lambda x:
-             find_common_word(
-                     x.split('\t')[0], x.split('\t')[4]))
+    # df_all['common_in_brand'] = df_all['product_info'] \
+    #     .map(lambda x:
+    #          find_common_word(
+    #                  x.split('\t')[0], x.split('\t')[4]))
     print 'Common word in each column counted'
 
     df_all['length_of_search_term'] = df_all['search_term'] \
@@ -313,7 +316,8 @@ def main():
                      'common_in_title',
                      'common_in_description',
                      'common_in_attributes',
-                     'common_in_brand', 'length_of_search_term',
+                     # 'common_in_brand',
+                     'length_of_search_term',
                      'last_search_term_in_title',
                      'last_search_term_in_description',
                      'last_search_term_in_attributes']
