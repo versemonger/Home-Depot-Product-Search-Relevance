@@ -1,3 +1,4 @@
+import operator
 import xgboost as xgb
 import pandas as pd
 from sklearn.metrics import mean_squared_error, make_scorer
@@ -94,28 +95,37 @@ def XGBoost_regressor1(X_train, y_train, cv_flag):
 
     # Set XGBRegressor with some parameters.
     xgb_model\
-        = xgb.XGBRegressor(learning_rate=0.06, silent=True,
+        = xgb.XGBRegressor(learning_rate=0.03, silent=True,
                            objective="reg:logistic",
-                           gamma=2.25, min_child_weight=5,
+                           gamma=2.15, min_child_weight=5,
                            subsample=0.8, scale_pos_weight=0.9,
                            colsample_bytree=0.8,
-                           n_estimators=115, max_depth=10)
+                           n_estimators=900, max_depth=9)
 
     if cv_flag:
         scores = cross_validation.cross_val_score(
             xgb_model, X_train, y_train, cv=5, scoring=rmse)
         print np.mean(scores)
         return
-
+    # 7, 2.1: 2369 -> 4738
+    #                 4786 now after removing brand...
+    # 7, 2.2:      -> 4792
+    # 7, 2.3:         4786
+    # 10, 2.1:        4800
+    # 13, 2.1:        4808
+    # 5, 2.1:         4784
+    # 6, 2.15:        4784
+    # 6, 2.1:         4794
+    # 8 2.1: worse than 6, 2.1
     # optimal 10, 2.25
-    param_grid = {'max_depth': [9, 10, 11, 12],
-                  'gamma': [2.15, 2.25, 2.30]}
+    param_grid = {'max_depth': [7],
+                  'gamma': [2.1]}
 
     # Do grid search with a set of parameters for XGBoost.
     model \
         = grid_search\
         .GridSearchCV(estimator=xgb_model, param_grid=param_grid,
-                      n_jobs=-1, cv=2, verbose=20, scoring=rmse)
+                      n_jobs=3, cv=3, verbose=20, scoring=rmse)
     print 'start search'
     model.fit(X_train, y_train)
     print("Best parameters found by grid search:")
@@ -127,18 +137,27 @@ def XGBoost_regressor1(X_train, y_train, cv_flag):
 def XGBoost_regressor2():
     """
     Train an XGBoost model with XGBoost lib.
+    This method is mainly used to find relative importance of
+    the features.
     """
     train = xgb.DMatrix('train_libSVM.dat')
     all_train = xgb.DMatrix('all_train_libSVM.dat')
     test = xgb.DMatrix('test_libSVM.dat')
     validation = xgb.DMatrix('validate_libSVM.dat')
-    param = {'max_depth': 9, 'eta': 0.025, 'silent': 1,
-             'objective': 'reg:logistic', 'gamma': 2.15,
+    param = {'max_depth': 7, 'eta': 0.06, 'silent': 1,
+             'objective': 'reg:logistic', 'gamma': 2.1,
              'subsample': 0.8, 'colsample_bytree': 0.8,
-             'min_child_weight': 5}
-
-    watchlist = [(validation, 'eval'), (train, 'train')]
-    num_round = 150
+             'min_child_weight': 5, 'n_jobs': 3}
+    # 0.03-> 900, 1600 without features of SVD similarity between
+    #                  search term and other columns
+    # eta    ntrees   error
+    # 0.03-> 900 ->  0.2397 * 2 = 4795
+    # 0.025 -> 1900 ->            4782
+    # 0.06 -> 640 -> 0.2400 * 2 = 4801
+    ############# common brand & SVD brand deleted ############
+    # 0.03-> 900 ->  0.2397 * 2 = 4794
+    watchlist = [(validation, 'eval'), (all_train, 'train')]
+    num_round = 640
     xgb_model = xgb.train(param, train, num_round, watchlist)
     # xgb_model = xgb.cv(param, all_train, num_round, nfold=5,
     #                    metrics={'error'})
@@ -147,7 +166,9 @@ def XGBoost_regressor2():
 
     prediction = xgb_model.predict(test)
     importance = xgb_model.get_fscore(fmap='xgb.fmap')
-    print importance
+    sorted_importance = sorted(importance.items(),
+                               key=operator.itemgetter(1))
+    print sorted_importance
     xgb.plot_importance(xgb_model)
     test_id = pd.read_pickle('id_test')
     prediction = prediction * 2 + 1
@@ -161,7 +182,10 @@ def XGBoost_regressor2():
 def main():
     X_train = pd.read_pickle('X_train').values
     y_train = pd.read_pickle('y_train').values
-    random_forest_regressor(X_train, y_train, True)
+    XGBoost_regressor2()
+    # random_forest_regressor(X_train, y_train, True)
+    # XGBoost_regressor1(X_train, y_train, False)
+
 
 
 if __name__ == '__main__':
