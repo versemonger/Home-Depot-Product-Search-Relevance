@@ -9,14 +9,16 @@ import sys
 from sklearn.datasets import dump_svmlight_file
 import numpy as np
 from nltk.corpus import stopwords
-import store_data_in_pandas as sd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.stats import entropy
+from nltk.stem.porter import PorterStemmer
+
+stemmer = PorterStemmer()
 
 stopwords_list = stopwords.words('english')
-stemmed_stopwords = [sd.stem_text(stop_word)
+stemmed_stopwords = [stemmer.stem(stop_word)
                      for stop_word in stopwords_list]
 
 SVD_component_num = 10
@@ -152,13 +154,14 @@ def get_saperate_LSI_score(df, feature_name):
         y = v2.reshape(1, -1)
         similarity_one_dimension[i] \
             = cosine_similarity(x, y)
-        KL_similarity[i] = entropy(v1, v2)
+        KL_similarity[i] = entropy(np.exp(v1), np.exp(v2))
     new_feature = 'similarity in ' + feature_name
     new_feature2 = 'KL similarity ' + feature_name
     normalize_feature_list.append(new_feature)
     normalize_feature_list.append(new_feature2)
     df[new_feature] = pd.Series(similarity_one_dimension)
     df[new_feature2] = pd.Series(KL_similarity)
+    print new_feature2, KL_similarity
     if feature_name == 'text':
         df.drop(['text'], axis=1, inplace=True)
 
