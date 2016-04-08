@@ -337,7 +337,7 @@ def main():
             = df_all[column].map(lambda x: float(x))
         mean_word_in_title = df_all[column].mean()
         std_word_in_title = df_all[column].std()
-        print std_word_in_title
+       # print std_word_in_title
         df_all[column] \
             = df_all[column] \
             .map(
