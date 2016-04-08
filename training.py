@@ -14,8 +14,8 @@ def main():
     #################Temporarily disable RF#######
     # rf.fit(X_train, y_train)
     # Fit the data with RF
-    print "Fit the data with Random Forest Regressor"
-    rfr_prediction = rf.predict(X_test)
+    # print "Fit the data with Random Forest Regressor"
+    # rfr_prediction = rf.predict(X_test)
 
     # # Output the result
     # pd.DataFrame({"id": id_test, "relevance": y_prediction}) \
@@ -26,7 +26,7 @@ def main():
         = xgb.XGBRegressor(learning_rate=0.03, silent=True,
                            objective="reg:logistic", gamma=2.15,
                            min_child_weight=5, subsample=0.8,
-                           colsample_bytree=0.8, n_estimators=900,
+                           colsample_bytree=0.8, n_estimators=966,
                            max_depth=9)
 
     # make predictions with tuned parameters and XGBoost model
@@ -34,16 +34,10 @@ def main():
     print 'Fit the data with XGBoost'
     xgb_prediction = xgb_model.predict(X_test)
 
-    # # Use MPLRegressor
-    # nn_model = MLPRegressor(activation='logistic',
-    #                         learning_rate='adaptive',
-    #                         learning_rate_init=0.005,
-    #                         epsilon=1e-7)
-    # nn_model.fit(X_train, y_train)
-    # nn_prediction = nn_model.predict(X_test)
 
     print xgb_prediction[:20]
-    print rfr_prediction[:20]
+    # print rfr_prediction[:20]
+
     # ensemble result of two models
     ################ Temporarily use only XGBoost #######
     # prediction = (xgb_prediction + rfr_prediction) / 2
