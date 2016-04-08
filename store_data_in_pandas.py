@@ -4,14 +4,16 @@ This script basically extracts numerical features from text data.
 The numerical features are basically the occurrences of the search
 term in each column of the tuple.
 """
-import re
 import pandas as pd
 from nltk.stem.porter import PorterStemmer
 import requests
 import re
 import time
 from random import randint
+import enchant
 
+
+dic = enchant.Dict("en_US")
 START_SPELL_CHECK = \
     "<span class=\"spell\">Showing results for</span>"
 END_SPELL_CHECK = \
@@ -28,22 +30,23 @@ HTML_Codes = (
 
 def spell_check(s):
     q = '+'.join(s.split())
-    time.sleep(
-        randint(0, 2))  # relax and don't let google be angry
+    # relax and don't let google be angry
+    time.sleep(randint(0, 2) / 50.)
     r = requests.get("https://www.google.com/search?q=" + q)
     content = r.text
     start = content.find(START_SPELL_CHECK)
-    if (start > -1):
-        start = start + len(START_SPELL_CHECK)
+    if start > -1:
+        start += len(START_SPELL_CHECK)
         end = content.find(END_SPELL_CHECK)
         search = content[start:end]
         search = re.sub(r'<[^>]+>', '', search)
         for code in HTML_Codes:
             search = search.replace(code[1], code[0])
         search = search[1:]
+        print s, '--->', search
     else:
         search = s
-    return search;
+    return search
 
 
 # from nltk.stem.snowball import SnowballStemmer
@@ -64,16 +67,17 @@ def remove_non_ascii(s):
     return "".join([char for char in s if 0 <= ord(char) < 128])
 
 
-def stem_text(s):
+def stem_text(s, is_search_term):
     """
     stem the text.
-    :param s: s
-    :return: stemmed text.
+    :param is_search_term: if true, spell check s.
+    :param s: a string of text
+    :return: stemmed text string
     """
     if type(s) in {int, float}:
         return str(s)
     s = remove_non_ascii(s)
-    s = spell_check(s)
+
     # s = unicodedata \
     #     .normalize('NFD', unicode(s)).encode('ascii', 'ignore')
     # Split words with a.A
@@ -93,6 +97,7 @@ def stem_text(s):
     s = s.replace(" / ", " ")
     s = s.replace(" \\ ", " ")
     s = s.replace(".", " ")
+    s = s.replace("&", " ")
     s = re.sub(r"(^\.|/)", r"", s)
     s = re.sub(r"(\.|/)$", r"", s)
     s = re.sub(r"([0-9])([a-z])", r"\1 \2", s)
@@ -127,7 +132,6 @@ def stem_text(s):
     s = s.replace(" . ", " ")
     s = " ".join([str(strNum[z])
                   if z in strNum else z for z in s.split(" ")])
-    s = " ".join([stemmer.stem(z) for z in s.split(" ")])
 
     s = s.lower()
     s = s.replace("toliet", "toilet")
@@ -141,7 +145,9 @@ def stem_text(s):
     s = s.replace("whirpool", "whirlpool")
     s = s.replace("whirlpoolga", "whirlpool ga")
     s = s.replace("whirlpoolstainless", "whirlpool stainless")
-
+    if is_search_term:
+        s = spell_check(s)
+    s = " ".join([stemmer.stem(z) for z in s.split(" ")])
     return s
 
 
@@ -194,19 +200,21 @@ def main():
     df_all.to_pickle('df_all_before_stem')
 
     # stem all text fields.
-    df_all['brand'] = df_all['brand'].map(lambda s: stem_text(s))
+    df_all['brand'] = df_all['brand']\
+        .map(lambda s: stem_text(s, False))
 
     df_all['search_term'] = df_all['search_term'] \
-        .map(lambda s: stem_text(s))
+        .map(lambda s: stem_text(s, True))
 
     df_all['product_title'] = df_all['product_title'] \
-        .map(lambda s: stem_text(s))
+        .map(lambda s: stem_text(s, False))
 
     df_all['product_description'] = \
-        df_all['product_description'].map(lambda s: stem_text(s))
+        df_all['product_description']\
+            .map(lambda s: stem_text(s, False))
 
     df_all['attributes'] = df_all['attributes'] \
-        .map(lambda s: stem_text(s))
+        .map(lambda s: stem_text(s, False))
 
     # save the whole df
     df_all.to_pickle('df_all')
