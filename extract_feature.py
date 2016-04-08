@@ -108,9 +108,12 @@ def single_feature_SVD_transform(df, feature):
     :param df: the whole data_frame
     :return: dimension reduced numpy matrix
     """
+    n_gram = 2
+    if feature == 'text':
+        n_gram = 1
     vectorizer = TfidfVectorizer(encoding='ascii',
                                  stop_words=stemmed_stopwords,
-                                 ngram_range=(1, 1))
+                                 ngram_range=(1, n_gram))
     feature_matrix = vectorizer \
         .fit_transform(df[feature].apply(str))
     reducer = TruncatedSVD(n_components=SVD_component_num,
@@ -135,9 +138,12 @@ def get_saperate_LSI_score(df, feature_name):
     df_text_and_search_term \
         = pd.concat((df[feature_name], df['search_term']), axis=0,
                     ignore_index=True)
+    n_gram = 2
+    if feature_name == 'text':
+        n_gram = 1
     vectorizer = TfidfVectorizer(encoding='ascii',
                                  stop_words=stemmed_stopwords,
-                                 ngram_range=(1, 1))
+                                 ngram_range=(1, n_gram))
     text_matrix \
         = vectorizer.fit_transform(df_text_and_search_term)
     print 'get ' + feature_name + ' matrix'
