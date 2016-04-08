@@ -1,4 +1,6 @@
 import operator
+import os
+
 import xgboost as xgb
 import pandas as pd
 from sklearn.metrics import mean_squared_error, make_scorer
@@ -44,12 +46,14 @@ def random_forest_regressor(X_train, y_train, cv_flag):
     """
     # rescale y_train to range of [1, 3]
     y_train = y_train * 2 + 1
-    rf = RandomForestRegressor(n_jobs=-1, n_estimators=70,
-                               max_depth=8)
-    # optimal in the following: 70, 10, False
-    param_grid = {'n_estimators': [60, 70, 80],
-                  'bootstrap_features': [True, False]}
 
+    rf = RandomForestRegressor(n_jobs=-1, n_estimators=300,
+                               max_depth=9,
+                               bootstrap=True)
+    # optimal in the following: 70, 10, False
+    param_grid = {'n_estimators': [80, 105, 130]}
+    # 47629 <-- 300
+    # 47635 <-- 100
     rmse = make_scorer(fmean_squared_error,
                        greater_is_better=False)
     if cv_flag:
@@ -61,7 +65,7 @@ def random_forest_regressor(X_train, y_train, cv_flag):
     rf_model \
         = grid_search\
         .GridSearchCV(estimator=rf, param_grid=param_grid,
-                      n_jobs=-1, cv=3, verbose=20,
+                      n_jobs=-1, cv=4, verbose=20,
                       scoring=rmse)
 
     print 'start search'
@@ -97,14 +101,14 @@ def XGBoost_regressor1(X_train, y_train, cv_flag):
     xgb_model\
         = xgb.XGBRegressor(learning_rate=0.03, silent=True,
                            objective="reg:logistic",
-                           gamma=2.15, min_child_weight=5,
-                           subsample=0.8, scale_pos_weight=0.9,
-                           colsample_bytree=0.8,
-                           n_estimators=900, max_depth=9)
+                           gamma=2.2, min_child_weight=5,
+                           subsample=0.8, scale_pos_weight=0.6,
+                           colsample_bytree=0.7,
+                           n_estimators=961, max_depth=11)
 
     if cv_flag:
         scores = cross_validation.cross_val_score(
-            xgb_model, X_train, y_train, cv=5, scoring=rmse)
+            xgb_model, X_train, y_train, cv=4, scoring=rmse)
         print np.mean(scores)
         return
     # 7, 2.1: 2369 -> 4738
@@ -118,14 +122,19 @@ def XGBoost_regressor1(X_train, y_train, cv_flag):
     # 6, 2.1:         4794
     # 8 2.1: worse than 6, 2.1
     # optimal 10, 2.25
-    param_grid = {'max_depth': [7],
-                  'gamma': [2.1]}
+    ######### now reaches near 200 places #########
+    # for 600 trees, 2.2 is better than 2.1 and 2.3
+    # for 450 trees, 2.2 is better than 2.15 and 2.25
+    # for 200 trees dep = 11, 0.8 for subsample,
+    # 0.6 for scale_pos_weight
+    # 0.7 for colsample_bytree
+    param_grid = {'colsample_bytree': [0.8, 0.7, 0.9]}
 
     # Do grid search with a set of parameters for XGBoost.
     model \
         = grid_search\
         .GridSearchCV(estimator=xgb_model, param_grid=param_grid,
-                      n_jobs=3, cv=3, verbose=20, scoring=rmse)
+                      n_jobs=4, cv=2, verbose=20, scoring=rmse)
     print 'start search'
     model.fit(X_train, y_train)
     print("Best parameters found by grid search:")
@@ -144,10 +153,11 @@ def XGBoost_regressor2():
     all_train = xgb.DMatrix('all_train_libSVM.dat')
     test = xgb.DMatrix('test_libSVM.dat')
     validation = xgb.DMatrix('validate_libSVM.dat')
-    param = {'max_depth': 7, 'eta': 0.06, 'silent': 1,
-             'objective': 'reg:logistic', 'gamma': 2.1,
-             'subsample': 0.8, 'colsample_bytree': 0.8,
-             'min_child_weight': 5, 'n_jobs': 3}
+    param = {'max_depth': 11, 'eta': 0.03, 'silent': 1,
+             'objective': 'reg:logistic', 'gamma': 2.2,
+             'subsample': 0.8, 'colsample_bytree': 0.7,
+             'scale_pos_weight': 0.6, 'min_child_weight': 5,
+             'n_jobs': 4}
     # 0.03-> 900, 1600 without features of SVD similarity between
     #                  search term and other columns
     # eta    ntrees   error
@@ -156,8 +166,23 @@ def XGBoost_regressor2():
     # 0.06 -> 640 -> 0.2400 * 2 = 4801
     ############# common brand & SVD brand deleted ############
     # 0.03-> 900 ->  0.2397 * 2 = 4794
+    ############ add KL distance ########
+    # 0.03 -> 966 -> 0.2397
+    # 0.03 -> 1102 -> 0.234 or so
+    ##### add spell checking
+    # round = 200
+    # depth = 12 -> 0.235371
+    # depth = 11 min_cw = 5 -> 0.235316   SELECTED
+    # depth = 10 -> 0.235840
+    # depth = 9 -> 0.235912
+    # depth = 8 -> 0.236202
+    # min_child_weight = 6 -> 0.235679
+    # min_child_weight = 4 -> 0.235478
     watchlist = [(validation, 'eval'), (all_train, 'train')]
-    num_round = 640
+    # TODO: do data cleaning again.
+    # add approximate matching
+    # check KL distance
+    num_round = 1300
     xgb_model = xgb.train(param, train, num_round, watchlist)
     # xgb_model = xgb.cv(param, all_train, num_round, nfold=5,
     #                    metrics={'error'})
@@ -182,9 +207,9 @@ def XGBoost_regressor2():
 def main():
     X_train = pd.read_pickle('X_train').values
     y_train = pd.read_pickle('y_train').values
-    XGBoost_regressor2()
-    # random_forest_regressor(X_train, y_train, True)
-    # XGBoost_regressor1(X_train, y_train, False)
+    # XGBoost_regressor2()
+    random_forest_regressor(X_train, y_train, True)
+    #XGBoost_regressor1(X_train, y_train, True)
 
 
 
