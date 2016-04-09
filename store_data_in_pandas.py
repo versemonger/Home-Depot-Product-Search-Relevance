@@ -8,6 +8,7 @@ import pandas as pd
 import sys
 from nltk.stem.porter import PorterStemmer
 import re
+# from nltk.stem.snowball import SnowballStemmer
 
 # load spell checking dictionary
 spell_check_dict = open('spellCheckingDict', 'r')
@@ -17,8 +18,6 @@ for line in spell_check_dict:
         .update(eval('{' + line.strip().strip(',') + '}'))
 spell_check_dict.close()
 print "Spell check dictionary loaded."
-
-# from nltk.stem.snowball import SnowballStemmer
 
 # stemmer = SnowballStemmer('english')
 stemmer = PorterStemmer()
@@ -57,29 +56,55 @@ def stem_text(s, is_search_term):
 
     # This is necessary, otherwise you will get into trouble when
     # you make coalesce and split in extract_feature.py
-    s = s.replace('\t', ' ')
-    s = re.sub(r"(\w)\.([A-Z])", r"\1 \2", s)
+
+    # replace  \t\n\r\f\v with ' '
+    s = re.sub(r'\s', r' ', s)
+
+    # replace numbers including , as pure number
+    s = re.sub(r'([0-9]),([0-9])', r'\1\2', s)
+
+    # replace . with ' ' where it has no meaning
+    s = re.sub(r"(\w)\.([A-Za-z])", r"\1 \2", s)
     s = s.lower()
     s = s.replace(",", " ")
     s = s.replace("  ", " ")
     s = s.replace("$", " ")
     s = s.replace("?", " ")
     s = s.replace("-", " ")
+
+    # This modifies a special case where // is used instead of /
+    # like 1//2 should be 1/2
     s = s.replace("//", "/")
-    s = s.replace("..", " ")
-    s = s.replace(" \\ ", " ")
-    s = s.replace(".", " ")
+
+    # this is not associated with number , so it could be ignored
+    s = s.replace(' / ', ' ')
+
+    s = s.replace("..", ".")
+    s = re.sub(r' +', r' ', s)
+    # replace one two and so on with 1 2 and so on
+    s = " ".join([str(strNum[z])
+                  if z in strNum else z for z in s.split(" ")])
+    s = re.sub(r'([a-z])\\([a-z])', r'\1 \2', s)
+    s = re.sub(r'([0-9])\\([0-9])', r'\1/\2', s)
+    s = s.replace(".", " . ")
     s = s.replace("&", " ")
+    # remove leading and ending . /
     s = re.sub(r"(^\.|/)", r"", s)
-    s = re.sub(r"(\.|/)$", r"", s)
+    s = re.sub(r"/$", r"", s)
+
+    # separate adjacent number and characters
     s = re.sub(r"([0-9])([a-z])", r"\1 \2", s)
     s = re.sub(r"([a-z])([0-9])", r"\1 \2", s)
+
+    # replace all forms of multiplication by xbi
     s = s.replace(" x ", " xbi ")
-    s = re.sub(r"([a-z])( *)\.( *)([a-z])", r"\1 \4", s)
-    s = re.sub(r"([a-z])( *)/( *)([a-z])", r"\1 \4", s)
+    s = re.sub(r'([0-9])(x|\*)([0-9])', r'\1 xbi \3', s)
     s = s.replace("*", " xbi ")
     s = s.replace(" by ", " xbi ")
+
+    s = re.sub(r"([a-z])( *)/( *)([a-z])", r"\1 \4", s)
     s = re.sub(r"([0-9])( *)\.( *)([0-9])", r"\1.\4", s)
+    s = s.replace(' . ', ' ')
     s = re.sub(r"([0-9]+)( *)(inches|inch|in|')\.?", r"\1in. ", s)
     s = re.sub(r"([0-9]+)( *)(foot|feet|ft|'')\.?", r"\1ft. ", s)
     s = re.sub(r"([0-9]+)( *)(pounds|pound|lbs|lb)\.?", r"\1lb. ",
@@ -100,12 +125,7 @@ def stem_text(s, is_search_term):
     s = re.sub(r"([0-9]+)( *)(watts|watt)\.?", r"\1watt. ", s)
     s = re.sub(r"([0-9]+)( *)(amperes|ampere|amps|amp)\.?",
                r"\1amp. ", s)
-    s = s.replace("  ", " ")
-    s = s.replace(" . ", " ")
-    s = " ".join([str(strNum[z])
-                  if z in strNum else z for z in s.split(" ")])
 
-    s = s.lower()
     s = s.replace("toliet", "toilet")
     s = s.replace("airconditioner", "air conditioner")
     s = s.replace("vinal", "vinyl")
@@ -117,7 +137,7 @@ def stem_text(s, is_search_term):
     s = s.replace("whirpool", "whirlpool")
     s = s.replace("whirlpoolga", "whirlpool ga")
     s = s.replace("whirlpoolstainless", "whirlpool stainless")
-
+    s = re.sub(r' +', r' ', s)
     s = " ".join([stemmer.stem(z) for z in s.split(" ")])
     return s
 
