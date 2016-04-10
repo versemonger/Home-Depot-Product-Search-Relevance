@@ -37,8 +37,7 @@ def find_occurrences(str1, str2):
     :return:
     """
     return sum([str2.count(word) for word in str1.split()
-                if (word not in stemmed_stopwords) and
-                len(word) > 2])
+                if len(word) > 1])
 
 
 def find_common_word(str1, str2):
@@ -49,8 +48,7 @@ def find_common_word(str1, str2):
     :return: The number of words in str1 that appear in str2
     """
     return sum([str2.find(word) >= 0 for word in str1.split()
-                if (word not in stemmed_stopwords) and
-                len(word) > 2])
+                if len(word) > 1])
 
 
 def range_filter(x):
@@ -59,10 +57,11 @@ def range_filter(x):
     :param x: feature in one sample
     :return: x if x is small and 6 if x is larger than 6
     """
-    if x > 6:
-        return 6
-    else:
-        return x
+    # if x > 6:
+    #     return 6
+    # else:
+    #     return x
+    return x
 
 
 def modify_zero_and_one(x):
@@ -185,6 +184,19 @@ def create_feature_map(features):
     outfile.close()
 
 
+def get_last_term(x):
+    """
+    get last term in the search terms
+    :param x: search term string
+    :return: last term in the search terms
+    """
+    search_term = x.split('\t')[0]
+    if len(search_term) > 0:
+        return search_term.split()[-1]
+    else:
+        return ''
+
+
 def main():
     # import the number of training tuples
     df_train = pd.read_csv("train.csv", encoding="ISO-8859-1")
@@ -283,21 +295,21 @@ def main():
     df_all['last_search_term_in_title'] = df_all['product_info'] \
         .map(lambda x:
              find_common_word(
-                     (x.split('\t')[0]).split()[-1],
+                     get_last_term(x),
                      x.split('\t')[1]
              ))
     df_all['last_search_term_in_description'] \
         = df_all['product_info'] \
         .map(lambda x:
              find_common_word(
-                     (x.split('\t')[0]).split()[-1],
+                     get_last_term(x),
                      x.split('\t')[2]
              ))
     df_all['last_search_term_in_attributes'] \
         = df_all['product_info'] \
         .map(lambda x:
              find_common_word(
-                     (x.split('\t')[0]).split()[-1],
+                     get_last_term(x),
                      x.split('\t')[3]
              ))
 
