@@ -37,7 +37,7 @@ def find_occurrences(str1, str2):
     :return:
     """
     return sum([str2.count(word) for word in str1.split()
-                if len(word) > 1])
+                if len(word) > 2])
 
 
 def find_common_word(str1, str2):
@@ -48,7 +48,7 @@ def find_common_word(str1, str2):
     :return: The number of words in str1 that appear in str2
     """
     return sum([str2.find(word) >= 0 for word in str1.split()
-                if len(word) > 1])
+                if len(word) > 2])
 
 
 def range_filter(x):
@@ -57,10 +57,10 @@ def range_filter(x):
     :param x: feature in one sample
     :return: x if x is small and 6 if x is larger than 6
     """
-    # if x > 6:
-    #     return 6
-    # else:
-    #     return x
+    if x > 6:
+        return 6
+    else:
+        return x
     return x
 
 
