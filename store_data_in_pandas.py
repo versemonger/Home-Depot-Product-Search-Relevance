@@ -6,9 +6,9 @@ term in each column of the tuple.
 """
 import pandas as pd
 import sys
-from nltk.stem.porter import PorterStemmer
+# from nltk.stem.porter import PorterStemmer
 import re
-# from nltk.stem.snowball import SnowballStemmer
+from nltk.stem.snowball import SnowballStemmer
 
 # load spell checking dictionary
 spell_check_dict = open('spellCheckingDict', 'r')
@@ -19,8 +19,9 @@ for line in spell_check_dict:
 spell_check_dict.close()
 print "Spell check dictionary loaded."
 
-# stemmer = SnowballStemmer('english')
-stemmer = PorterStemmer()
+stemmer = SnowballStemmer('english')
+# stemmer = PorterStemmer()
+
 strNum = {'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4,
           'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9}
 
