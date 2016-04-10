@@ -7,6 +7,7 @@ term in each column of the tuple.
 import pandas as pd
 import sys
 # from nltk.stem.porter import PorterStemmer
+from nltk.corpus import stopwords
 import re
 from nltk.stem.snowball import SnowballStemmer
 
@@ -20,6 +21,7 @@ spell_check_dict.close()
 print "Spell check dictionary loaded."
 
 stemmer = SnowballStemmer('english')
+stopwords_set = set(stopwords.words())
 # stemmer = PorterStemmer()
 
 strNum = {'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4,
@@ -139,7 +141,8 @@ def stem_text(s, is_search_term):
     s = s.replace("whirlpoolga", "whirlpool ga")
     s = s.replace("whirlpoolstainless", "whirlpool stainless")
     s = re.sub(r' +', r' ', s)
-    s = " ".join([stemmer.stem(z) for z in s.split(" ")])
+    s = " ".join([stemmer.stem(z) for z in s.split(" ") if
+                  z not in stopwords_set])
     return s
 
 
