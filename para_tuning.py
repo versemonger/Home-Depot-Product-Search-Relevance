@@ -51,7 +51,7 @@ def random_forest_regressor(X_train, y_train, cv_flag):
                                max_depth=9,
                                bootstrap=True)
     # optimal in the following: 70, 10, False
-    param_grid = {'n_estimators': [80, 105, 130]}
+    param_grid = {'n_estimators': [800, 1000, 1200]}
     # 47629 <-- 300
     # 47635 <-- 100
     rmse = make_scorer(fmean_squared_error,
@@ -65,7 +65,7 @@ def random_forest_regressor(X_train, y_train, cv_flag):
     rf_model \
         = grid_search\
         .GridSearchCV(estimator=rf, param_grid=param_grid,
-                      n_jobs=-1, cv=4, verbose=20,
+                      n_jobs=-1, cv=3, verbose=20,
                       scoring=rmse)
 
     print 'start search'
@@ -104,11 +104,11 @@ def XGBoost_regressor1(X_train, y_train, cv_flag):
                            gamma=2.2, min_child_weight=5,
                            subsample=0.8, scale_pos_weight=0.6,
                            colsample_bytree=0.7,
-                           n_estimators=961, max_depth=11)
+                           n_estimators=1092, max_depth=11)
 
     if cv_flag:
         scores = cross_validation.cross_val_score(
-            xgb_model, X_train, y_train, cv=4, scoring=rmse)
+            xgb_model, X_train, y_train, cv=5, scoring=rmse)
         print np.mean(scores)
         return
     # 7, 2.1: 2369 -> 4738
@@ -182,7 +182,8 @@ def XGBoost_regressor2():
     # TODO: do data cleaning again.
     # add approximate matching
     # check KL distance
-    num_round = 1300
+    # n = 1096
+    num_round = 1198
     xgb_model = xgb.train(param, train, num_round, watchlist)
     # xgb_model = xgb.cv(param, all_train, num_round, nfold=5,
     #                    metrics={'error'})
@@ -207,9 +208,9 @@ def XGBoost_regressor2():
 def main():
     X_train = pd.read_pickle('X_train').values
     y_train = pd.read_pickle('y_train').values
-    # XGBoost_regressor2()
-    random_forest_regressor(X_train, y_train, True)
-    #XGBoost_regressor1(X_train, y_train, True)
+    XGBoost_regressor2()
+    # random_forest_regressor(X_train, y_train, False)
+    # XGBoost_regressor1(X_train, y_train, True)
 
 
 
