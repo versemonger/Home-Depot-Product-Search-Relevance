@@ -21,7 +21,7 @@ stopwords_list = stopwords.words('english')
 stemmed_stopwords = [stemmer.stem(stop_word)
                      for stop_word in stopwords_list]
 
-SVD_component_num = 20
+SVD_component_num = 30
 # We will be normalize data named with these features.
 normalize_feature_list = []
 
@@ -58,7 +58,7 @@ def range_filter(x):
     :return: x if x is small and 6 if x is larger than 6
     """
     if x > 8:
-        return 6
+        return 8
     else:
         return x
     return x
@@ -146,12 +146,10 @@ def get_saperate_LSI_score(df, feature_name):
     text_matrix \
         = vectorizer.fit_transform(df_text_and_search_term)
     print 'get ' + feature_name + ' matrix'
-    # try it without truncation
-    # lsi_transformer = TruncatedSVD(n_components=120,
-    #                                random_state=10)
+    lsi_transformer = TruncatedSVD(n_components=300,
+                                   random_state=10)
 
-    # reduced_vector = lsi_transformer.fit_transform(text_matrix)
-    reduced_vector = text_matrix
+    reduced_vector = lsi_transformer.fit_transform(text_matrix)
     print 'vector of ' + feature_name + ' reduced'
     similarity_one_dimension = np.zeros(tuple_number)
     KL_similarity = np.zeros(tuple_number)
