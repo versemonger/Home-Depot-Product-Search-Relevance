@@ -21,7 +21,7 @@ stopwords_list = stopwords.words('english')
 stemmed_stopwords = [stemmer.stem(stop_word)
                      for stop_word in stopwords_list]
 
-SVD_component_num = 30
+SVD_component_num = 20
 # We will be normalize data named with these features.
 normalize_feature_list = []
 
@@ -146,7 +146,7 @@ def get_saperate_LSI_score(df, feature_name):
     text_matrix \
         = vectorizer.fit_transform(df_text_and_search_term)
     print 'get ' + feature_name + ' matrix'
-    lsi_transformer = TruncatedSVD(n_components=300,
+    lsi_transformer = TruncatedSVD(n_components=160,
                                    random_state=10)
 
     reduced_vector = lsi_transformer.fit_transform(text_matrix)
@@ -167,7 +167,7 @@ def get_saperate_LSI_score(df, feature_name):
     normalize_feature_list.append(new_feature2)
     df[new_feature] = pd.Series(similarity_one_dimension)
     df[new_feature2] = pd.Series(KL_similarity)
-    print new_feature2, KL_similarity
+    print new_feature2, KL_similarity[:10]
     if feature_name == 'text':
         df.drop(['text'], axis=1, inplace=True)
 
