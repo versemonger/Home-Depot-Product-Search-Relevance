@@ -1,6 +1,7 @@
 import operator
 import os
 
+import pickle
 import xgboost as xgb
 import pandas as pd
 from sklearn.metrics import mean_squared_error, make_scorer
@@ -102,7 +103,7 @@ def XGBoost_regressor1(X_train, y_train, cv_flag):
         = xgb.XGBRegressor(learning_rate=0.03, silent=True,
                            objective="reg:logistic",
                            gamma=2.2, min_child_weight=5,
-                           subsample=0.8, scale_pos_weight=0.6,
+                           subsample=0.8, scale_pos_weight=0.55,
                            colsample_bytree=0.7,
                            n_estimators=1092, max_depth=11)
 
@@ -128,13 +129,14 @@ def XGBoost_regressor1(X_train, y_train, cv_flag):
     # for 200 trees dep = 11, 0.8 for subsample,
     # 0.6 for scale_pos_weight
     # 0.7 for colsample_bytree
-    param_grid = {'colsample_bytree': [0.8, 0.7, 0.9]}
+    param_grid = {'gamma': [2.15, 2.2, 2.25],
+                  'scale_pos_weight': [0.55, 0.6, 0.65]}
 
     # Do grid search with a set of parameters for XGBoost.
     model \
         = grid_search\
         .GridSearchCV(estimator=xgb_model, param_grid=param_grid,
-                      n_jobs=4, cv=2, verbose=20, scoring=rmse)
+                      n_jobs=4, cv=3, verbose=20, scoring=rmse)
     print 'start search'
     model.fit(X_train, y_train)
     print("Best parameters found by grid search:")
@@ -153,10 +155,10 @@ def XGBoost_regressor2():
     all_train = xgb.DMatrix('all_train_libSVM.dat')
     test = xgb.DMatrix('test_libSVM.dat')
     validation = xgb.DMatrix('validate_libSVM.dat')
-    param = {'max_depth': 11, 'eta': 0.03, 'silent': 1,
-             'objective': 'reg:logistic', 'gamma': 2.2,
+    param = {'max_depth': 11, 'eta': 0.035, 'silent': 1,
+             'objective': 'reg:linear', 'gamma': 2.2,
              'subsample': 0.8, 'colsample_bytree': 0.7,
-             'scale_pos_weight': 0.6, 'min_child_weight': 5,
+             'scale_pos_weight': 0.55, 'min_child_weight': 5,
              'n_jobs': 4}
     # 0.03-> 900, 1600 without features of SVD similarity between
     #                  search term and other columns
@@ -183,7 +185,7 @@ def XGBoost_regressor2():
     # add approximate matching
     # check KL distance
     # n = 1096
-    num_round = 1198
+    num_round = 1000
     xgb_model = xgb.train(param, train, num_round, watchlist)
     # xgb_model = xgb.cv(param, all_train, num_round, nfold=5,
     #                    metrics={'error'})
@@ -192,9 +194,15 @@ def XGBoost_regressor2():
 
     prediction = xgb_model.predict(test)
     importance = xgb_model.get_fscore(fmap='xgb.fmap')
+    print importance
     sorted_importance = sorted(importance.items(),
                                key=operator.itemgetter(1))
     print sorted_importance
+    importance_of_feature_file\
+        = open('importance_of_feature_file', 'w')
+    pickle.dump(sorted_importance, importance_of_feature_file)
+    importance_of_feature_file.close()
+
     xgb.plot_importance(xgb_model)
     test_id = pd.read_pickle('id_test')
     prediction = prediction * 2 + 1
@@ -211,8 +219,6 @@ def main():
     XGBoost_regressor2()
     # random_forest_regressor(X_train, y_train, False)
     # XGBoost_regressor1(X_train, y_train, True)
-
-
 
 if __name__ == '__main__':
     main()
