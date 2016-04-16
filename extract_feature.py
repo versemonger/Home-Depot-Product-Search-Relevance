@@ -253,18 +253,44 @@ def main():
         .map(lambda x:
              find_occurrences(
                      x.split('\t')[0], x.split('\t')[1]))
+
+    title_ratio = df_all['word_in_title'].values / \
+        df_all['title_length'].values.astype(float)
+    title_ratio[np.isinf(title_ratio)] = 0
+    df_all['title_ratio']\
+        = pd.DataFrame(title_ratio)
+
     df_all['word_in_description'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
                      x.split('\t')[0], x.split('\t')[2]))
+
+    description_ratio = df_all['word_in_description'].values / \
+        df_all['description_length'].values.astype(float)
+    description_ratio[np.isinf(description_ratio)] = 0
+    df_all['description_ratio']\
+        = pd.DataFrame(description_ratio)
+
     df_all['word_in_attributes'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
                      x.split('\t')[0], x.split('\t')[3]))
+
+    attributes_ratio = df_all['word_in_attributes'].values / \
+        df_all['attributes_length'].values.astype(float)
+    attributes_ratio[np.isinf(attributes_ratio)] = 0
+    df_all['attributes_ratio']\
+        = pd.DataFrame(attributes_ratio)
+
     df_all['word_in_brand'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
                      x.split('\t')[0], x.split('\t')[4]))
+    brand_ratio = df_all['word_in_brand'].values / \
+        df_all['brand_length'].values.astype(float)
+    brand_ratio[np.isinf(brand_ratio)] = 0
+    df_all['brand_ratio']\
+        = pd.DataFrame(brand_ratio)
 
     print 'Word occurrences in each column counted'
 
@@ -338,13 +364,14 @@ def main():
 
     global normalize_feature_list
     normalize_feature_list.extend(
-            ['title_length',
-             'description_length', 'attributes_length',
-             'common_in_title', 'common_in_description',
-             'common_in_attributes', 'length_of_search_term',
-             'last_search_term_in_title',
+            ['title_length', 'description_length',
+             'attributes_length', 'common_in_title',
+             'common_in_description', 'common_in_attributes',
+             'length_of_search_term', 'last_search_term_in_title',
              'last_search_term_in_description',
-             'last_search_term_in_attributes'])
+             'last_search_term_in_attributes',
+             'title_ratio', 'description_ratio',
+             'attributes_ratio', 'brand_ratio'])
 
     # Normalize a part of data in df
     for column in normalize_feature_list:
