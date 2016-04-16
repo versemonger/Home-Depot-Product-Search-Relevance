@@ -59,40 +59,61 @@ def stem_text(s, is_search_term):
 
     # This is necessary, otherwise you will get into trouble when
     # you make coalesce and split in extract_feature.py
-
     # replace  \t\n\r\f\v with ' '
-    s = re.sub(r'\s', r' ', s)
+    s = re.sub(r'\s', ' ', s)
+
+    # replace characters like ,$?-()[]{} with spaces
+    s = re.sub(r'[,&!\$\?\-\(\)\[\]{}:]', " ", s)
+
+    # remove . between abbreviations.
+    s = re.sub(r'([A-Z])\.(?=[A-Z. ])', r"\1", s)
+
+    # remove dot in something like cat..dog
+    s = re.sub(r'\.\.+', ' ', s)
+
+    # Remove all dots except dot in numbers.
+    s = s.replace(".", " . ")
+    # remove spaces between numbers, dot and numbers
+    s = re.sub(r"([0-9]) *\. *([0-9])", r"\1.\2", s)
+    s = s.replace(' . ', ' ')
 
     # replace numbers including , as pure number
     s = re.sub(r'([0-9]),([0-9])', r'\1\2', s)
 
-    # replace . with ' ' where it has no meaning
-    s = re.sub(r"(\w)\.([A-Za-z])", r"\1 \2", s)
+    # add space after ending .
+    # compared to \w\.[A-Z] this doesn't change something like
+    # U.S.A
+    # Drawback: remove ending . of in. ft. and so on.
+    # s = re.sub(r"([a-z0-9])\.([A-Z])", r"\1 \2", s)
+
+    # fix something like: cleaningSeat securityStandard and so on.
+    s = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', s)
+
     s = s.lower()
-    s = s.replace(",", " ")
-    s = s.replace("  ", " ")
-    s = s.replace("$", " ")
-    s = s.replace("?", " ")
-    s = s.replace("-", " ")
+
+    # remove urls
+    s = re.sub(r'https? ?[^ ]+', '', s)
 
     # This modifies a special case where // is used instead of /
     # like 1//2 should be 1/2
     s = s.replace("//", "/")
 
     # this is not associated with number , so it could be ignored
+    # There is no cases like 1 / 2 in product description,
+    # and very likely there will be no cases like this in other
+    # files.
     s = s.replace(' / ', ' ')
 
-    s = s.replace("..", ".")
-    s = re.sub(r' +', r' ', s)
+    # remove adjacent spaces
+    s = re.sub(r' +',  ' ', s)
+
     # replace one two and so on with 1 2 and so on
     s = " ".join([str(strNum[z])
                   if z in strNum else z for z in s.split(" ")])
-    s = re.sub(r'([a-z])\\([a-z])', r'\1 \2', s)
-    s = re.sub(r'([0-9])\\([0-9])', r'\1/\2', s)
-    s = s.replace(".", " . ")
-    s = s.replace("&", " ")
-    # remove leading and ending . /
-    s = re.sub(r"(^\.|/)", r"", s)
+
+    s = re.sub(r'([a-z]) *[/\\\\] *([a-z])', r'\1 \2', s)
+    s = re.sub(r'([0-9])\\\\([0-9])', r'\1/\2', s)
+
     s = re.sub(r"/$", r"", s)
 
     # separate adjacent number and characters
@@ -101,32 +122,33 @@ def stem_text(s, is_search_term):
 
     # replace all forms of multiplication by xbi
     s = s.replace(" x ", " xbi ")
-    s = re.sub(r'([0-9])(x|\*)([0-9])', r'\1 xbi \3', s)
+    s = re.sub(r'([0-9])[x\*]([0-9])', r'\1 xbi \2', s)
     s = s.replace("*", " xbi ")
     s = s.replace(" by ", " xbi ")
 
-    s = re.sub(r"([a-z])( *)/( *)([a-z])", r"\1 \4", s)
-    s = re.sub(r"([0-9])( *)\.( *)([0-9])", r"\1.\4", s)
-    s = s.replace(' . ', ' ')
-    s = re.sub(r"([0-9]+)( *)(inches|inch|in|')\.?", r"\1in. ", s)
-    s = re.sub(r"([0-9]+)( *)(foot|feet|ft|'')\.?", r"\1ft. ", s)
-    s = re.sub(r"([0-9]+)( *)(pounds|pound|lbs|lb)\.?", r"\1lb. ",
-               s)
-    s = re.sub(r"([0-9]+)( *)(square|sq) ?\.?(feet|foot|ft)\.?",
-               r"\1sq.ft. ", s)
-    s = re.sub(r"([0-9]+)( *)(cubic|cu) ?\.?(feet|foot|ft)\.?",
-               r"\1cu.ft. ", s)
-    s = re.sub(r"([0-9]+)( *)(gallons|gallon|gal)\.?", r"\1gal. ",
-               s)
-    s = re.sub(r"([0-9]+)( *)(ounces|ounce|oz)\.?", r"\1oz. ", s)
-    s = re.sub(r"([0-9]+)( *)(centimeters|cm)\.?", r"\1cm. ", s)
-    s = re.sub(r"([0-9]+)( *)(milimeters|mm)\.?", r"\1mm. ", s)
+    # remove adjacent spaces
+    s = re.sub(r' +', r' ', s)
 
-    s = re.sub(r"([0-9]+)( *)(degrees|degree)\.?", r"\1deg. ", s)
-    s = s.replace(" v ", " volts ")
-    s = re.sub(r"([0-9]+)( *)(volts|volt)\.?", r"\1volt. ", s)
-    s = re.sub(r"([0-9]+)( *)(watts|watt)\.?", r"\1watt. ", s)
-    s = re.sub(r"([0-9]+)( *)(amperes|ampere|amps|amp)\.?",
+    # Transform units
+    s = re.sub(r"([0-9]+) ?(inches|inch|in|')\.?", r"\1in. ", s)
+    s = re.sub(r"([0-9]+) ?(foot|feet|ft|'')\.?", r"\1ft. ", s)
+    s = re.sub(r"([0-9]+) ?(pounds|pound|lbs|lb)\.?", r"\1lb. ",
+               s)
+    s = re.sub(r"([0-9]+) ?(square|sq)\.? ?(feet|foot|ft)\.?",
+               r"\1sq.ft. ", s)
+    s = re.sub(r"([0-9]+) ?(cubic|cu)\.? ?(feet|foot|ft)\.?",
+               r"\1cu.ft. ", s)
+    s = re.sub(r"([0-9]+) ?(gallons|gallon|gal)\.?", r"\1gal. ",
+               s)
+    s = re.sub(r"([0-9]+) ?(ounces|ounce|oz)\.?", r"\1oz. ", s)
+    s = re.sub(r"([0-9]+) ?(centimeters|cm)\.?", r"\1cm. ", s)
+    s = re.sub(r"([0-9]+) ?(milimeters|mm)\.?", r"\1mm. ", s)
+
+    s = re.sub(r"([0-9]+) ?(degrees|degree)\.?", r"\1deg. ", s)
+    s = re.sub(r' v(\. | |$)', ' volts ')
+    s = re.sub(r"([0-9]+) ?(volts|volt) *\.?", r"\1volt. ", s)
+    s = re.sub(r"([0-9]+) ?(watts|watt)\.?", r"\1watt. ", s)
+    s = re.sub(r"([0-9]+) ?(amperes|ampere|amps|amp)\.?",
                r"\1amp. ", s)
 
     s = s.replace("toliet", "toilet")
