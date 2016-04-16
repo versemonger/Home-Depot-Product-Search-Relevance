@@ -7,6 +7,7 @@ http://orion.lcg.ufrj.br/Dr.Dobbs/books/book5/chap14.htm
 import pandas as pd
 import sys
 
+import pickle
 from sklearn import preprocessing
 from sklearn.datasets import dump_svmlight_file
 import numpy as np
@@ -26,6 +27,10 @@ stemmed_stopwords = [stemmer.stem(stop_word)
 SVD_component_num = 12
 # We will be normalize data named with these features.
 normalize_feature_list = []
+# SVD_component_feature_list \
+#     = ['search_term', 'product_title', 'product_description',
+#        'attributes', 'brand']
+SVD_component_feature_list = ['search_term']
 
 
 def find_occurrences(str1, str2):
@@ -84,11 +89,9 @@ def all_SVD_transform(df):
     :param df: the whole pandas data frame
     :return: a data matrix of reduced dimension
     """
-    feature_list = ['search_term', 'product_title',
-                    'product_description', 'attributes', 'brand']
     first_term = 'search_term'
     reduced_matrix = single_feature_SVD_transform(df, first_term)
-    for feature in feature_list:
+    for feature in SVD_component_feature_list:
         if feature != 'search_term':
             reduced_feature \
                 = single_feature_SVD_transform(df, feature)
@@ -174,15 +177,23 @@ def get_saperate_LSI_score(df, feature_name):
 
 def create_feature_map(features):
     """
+    create feature map and dict of feature and index
+    for example: {'product_uid': 0,
+                  'similarity in product_title': 1}
     :param features: The columns names of data frame
     :return: a map file between feature names and feature index
     """
-    outfile = open('xgb.fmap', 'w')
+    mapfile = open('xgb.fmap', 'w')
     i = 0
+    dicfile = open('feature_index_dict', 'w')
+    feature_index_dict = {}
     for feat in features:
-        outfile.write('{0}\t{1}\tq\n'.format(i, feat))
+        feature_index_dict[feat] = i
+        mapfile.write('{0}\t{1}\tq\n'.format(i, feat))
         i += 1
-    outfile.close()
+    mapfile.close()
+    pickle.dump(feature_index_dict, dicfile)
+    dicfile.close()
 
 
 def get_last_term(x):
@@ -449,9 +460,7 @@ def main():
                        zero_based=True, multilabel=False)
     features = list(
             df_train.drop(['id', 'relevance'], axis=1).columns[0:])
-    feature_list = ['search_term', 'product_title',
-                    'product_description', 'attributes', 'brand']
-    for feature in feature_list:
+    for feature in SVD_component_feature_list:
         for i in range(SVD_component_num):
             features.append(feature + '_' + str(i + 1))
     create_feature_map(features)
