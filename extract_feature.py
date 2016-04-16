@@ -23,7 +23,7 @@ stopwords_list = stopwords.words('english')
 stemmed_stopwords = [stemmer.stem(stop_word)
                      for stop_word in stopwords_list]
 
-SVD_component_num = 15
+SVD_component_num = 12
 # We will be normalize data named with these features.
 normalize_feature_list = []
 
@@ -39,7 +39,7 @@ def find_occurrences(str1, str2):
     :return:
     """
     return sum([str2.count(word) for word in str1.split()
-                if len(word) >= 2])
+                if len(word) >= 1])
 
 
 def find_common_word(str1, str2):
@@ -50,19 +50,17 @@ def find_common_word(str1, str2):
     :return: The number of words in str1 that appear in str2
     """
     return sum([str2.find(word) >= 0 for word in str1.split()
-                if len(word) >= 2])
+                if len(word) >= 1])
 
 
 def range_filter(x):
     """
     For each feature, round to to large data to 6
-    :param x: feature in one sample
+    :param x: feature in one sample, an array
     :return: x if x is small and 6 if x is larger than 6
     """
-    if x > 8:
-        return 8
-    else:
-        return x
+    x[x > 6] = 6
+    return x
 
 
 def modify_zero_and_one(x):
@@ -120,7 +118,7 @@ def single_feature_SVD_transform(df, feature):
                            random_state=1992)
     result = reducer.fit_transform(feature_matrix)
     print "Finish reducing dimensionality of " + feature
-    return np.array(result)
+    return np.array(zscore(result))
 
 
 def get_saperate_LSI_score(df, feature_name):
@@ -147,7 +145,7 @@ def get_saperate_LSI_score(df, feature_name):
     text_matrix \
         = vectorizer.fit_transform(df_text_and_search_term)
     print 'get ' + feature_name + ' matrix'
-    lsi_transformer = TruncatedSVD(n_components=160,
+    lsi_transformer = TruncatedSVD(n_components=120,
                                    random_state=10)
 
     reduced_vector = lsi_transformer.fit_transform(text_matrix)
@@ -164,6 +162,7 @@ def get_saperate_LSI_score(df, feature_name):
         KL_similarity[i] = entropy(np.exp(v1), np.exp(v2))
     new_feature = 'similarity in ' + feature_name
     new_feature2 = 'KL similarity ' + feature_name
+    global normalize_feature_list
     normalize_feature_list.append(new_feature)
     normalize_feature_list.append(new_feature2)
     df[new_feature] = pd.Series(similarity_one_dimension)
@@ -210,10 +209,10 @@ def main():
     #                 'attributes', 'brand', 'text']
     feature_list = ['product_title', 'product_description',
                     'attributes', 'brand', 'text']
-    #
-    # for feature in feature_list:
-    #     get_saperate_LSI_score(df_all, feature)
-    # print 'LSI_score added.'
+
+    for feature in feature_list:
+        get_saperate_LSI_score(df_all, feature)
+    print 'LSI_score added.'
 
     # Coalesce all information into one column so we can apply
     # map to that one column
@@ -324,26 +323,37 @@ def main():
                  'product_description', 'product_info',
                  'attributes', 'brand'], axis=1, inplace=True)
 
-    # Normalize a part of data in df
-    # rescale a part of data in df
-    for column in ['word_in_title', 'word_in_description',
-                   'word_in_attributes', 'title_length',
-                   'description_length', 'attributes_length',
-                   'common_in_title', 'common_in_description',
-                   'common_in_attributes', 'length_of_search_term',
-                   'last_search_term_in_title',
-                   'last_search_term_in_description',
-                   'last_search_term_in_attributes']:
-        # df_all[column] \
-        #     = pd.DataFrame(min_max_scaler
-        #                    .fit_transform(df_all[column].values.
-        #                                   reshape(-1, 1)))
+    normalize_filtered_feature = ['word_in_title',
+                                  'word_in_description',
+                                  'word_in_attributes']
 
+    # Normalize a part of data in df
+    for column in normalize_filtered_feature:
+        df_all[column] \
+            = pd.DataFrame(
+                zscore(range_filter(df_all[column].values)))
+        print column, ':'
+        print df_all[column][0:10]
+    print 'Z norm gotten.'
+
+    global normalize_feature_list
+    normalize_feature_list.extend(
+            ['title_length',
+             'description_length', 'attributes_length',
+             'common_in_title', 'common_in_description',
+             'common_in_attributes', 'length_of_search_term',
+             'last_search_term_in_title',
+             'last_search_term_in_description',
+             'last_search_term_in_attributes'])
+
+    # Normalize a part of data in df
+    for column in normalize_feature_list:
         df_all[column] \
             = pd.DataFrame(zscore(df_all[column].values))
         print column, ':'
         print df_all[column][0:10]
     print 'Z norm gotten.'
+
     # scale the features
     min_max_scaler = preprocessing.MinMaxScaler()
 
@@ -367,32 +377,8 @@ def main():
     id_test = df_test['id']
     id_test.to_pickle('id_test')
 
-    # # Output targets of training data, training data, testing
-    #  data
-    # # to pd frame file
-    # df_train['relevance'].to_pickle('y_train')
-    # df_train \
-    #     .drop(['id', 'relevance'], axis=1) \
-    #     .to_pickle('X_train')
-    # df_test \
-    #     .drop(['id', 'relevance'], axis=1) \
-    #     .to_pickle('X_test')
-
-    # This snippet of code drops 'product_uid' as well,
-    # which may be however useful in this project because
-    # the relevance may be biased to several products.
-    # X_train = df_train.drop(
-    #         ['id', 'relevance', 'product_uid'], axis=1).values
-    # df_train\
-    #     .drop(['id', 'relevance', 'product_uid'], axis=1)\
-    #     .to_pickle('X_train')
-    # X_test = df_test.drop(
-    #         ['id', 'relevance', 'product_uid'], axis=1).values
-    # df_test\
-    #     .drop(['id', 'relevance', 'product_uid'], axis=1)\
-    #     .to_pickle('X_test')
-
     truncate_svd_values = all_SVD_transform(df_info)
+    print truncate_svd_values[0:10]
 
     # output the feature data to libSVM files.
     y_train = df_train['relevance'].values
