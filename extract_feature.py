@@ -257,6 +257,7 @@ def main():
     title_ratio = df_all['word_in_title'].values / \
         df_all['title_length'].values.astype(float)
     title_ratio[np.isinf(title_ratio)] = 0
+    title_ratio = np.nan_to_num(title_ratio)
     df_all['title_ratio']\
         = pd.DataFrame(title_ratio)
 
@@ -268,6 +269,7 @@ def main():
     description_ratio = df_all['word_in_description'].values / \
         df_all['description_length'].values.astype(float)
     description_ratio[np.isinf(description_ratio)] = 0
+    description_ratio = np.nan_to_num(description_ratio)
     df_all['description_ratio']\
         = pd.DataFrame(description_ratio)
 
@@ -279,6 +281,7 @@ def main():
     attributes_ratio = df_all['word_in_attributes'].values / \
         df_all['attributes_length'].values.astype(float)
     attributes_ratio[np.isinf(attributes_ratio)] = 0
+    attributes_ratio = np.nan_to_num(attributes_ratio)
     df_all['attributes_ratio']\
         = pd.DataFrame(attributes_ratio)
 
@@ -289,10 +292,12 @@ def main():
     brand_ratio = df_all['word_in_brand'].values / \
         df_all['brand_length'].values.astype(float)
     brand_ratio[np.isinf(brand_ratio)] = 0
+    brand_ratio = np.nan_to_num(brand_ratio)
     df_all['brand_ratio']\
         = pd.DataFrame(brand_ratio)
 
-    print 'Word occurrences in each column counted'
+    print 'Word occurrences in each column counted.'
+    print 'Ratios calculated.'
 
     # count common words in search term and each column
     df_all['common_in_title'] = df_all['product_info'] \
@@ -311,7 +316,7 @@ def main():
         .map(lambda x:
              find_common_word(
                      x.split('\t')[0], x.split('\t')[4]))
-    print 'Common word in each column counted'
+    print 'Common words in each column counted'
 
     df_all['length_of_search_term'] = df_all['search_term'] \
         .map(lambda x: len(x.split()))
@@ -371,7 +376,7 @@ def main():
              'last_search_term_in_description',
              'last_search_term_in_attributes',
              'title_ratio', 'description_ratio',
-             'attributes_ratio', 'brand_ratio'])
+             'attributes_ratio'])
 
     # Normalize a part of data in df
     for column in normalize_feature_list:
@@ -386,7 +391,7 @@ def main():
 
     # rescale a part of data in df
     for column in ['word_in_brand', 'common_in_brand',
-                   'brand_length']:
+                   'brand_length',  'brand_ratio']:
         df_all[column] \
             = pd.DataFrame(min_max_scaler
                            .fit_transform(df_all[column].values.
