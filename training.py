@@ -1,5 +1,6 @@
 import os
 
+import pickle
 from sklearn.ensemble import RandomForestRegressor
 import xgboost as xgb
 import numpy as np
@@ -7,10 +8,36 @@ import pandas as pd
 import sys
 
 
+def get_indices_of_important_features(portion):
+    """
+    return an array that contains indices of features with higher
+    importance.
+    :param portion: float, portion of discarded features.
+    :return: an array of indices of selected features
+    """
+    feature_index_dict_file = open('feature_index_dict', 'r')
+    feature_importance_array_file \
+        = open('importance_of_feature_file', 'r')
+    feature_index_dict = pickle.load(feature_index_dict_file)
+    feature_importance_array\
+        = pickle.load(feature_importance_array_file)
+    indices = []
+    feature_num = len(feature_importance_array)
+    for i in range(int(feature_num * portion), feature_num):
+        indices.append(
+                feature_index_dict[feature_importance_array[i][0]])
+    return indices
+
+
 def main():
+    indices = get_indices_of_important_features(0.2)
     X_train = np.load('X_train_with_SVD.npy')
     X_test = np.load('X_test_with_SVD.npy')
     y_train = np.load('Y_train.npy')
+    X_train = X_train[:, indices]
+    X_test = X_test[:, indices]
+    print X_train.shape
+    sys.exit()
     rf_enabled = False
     if rf_enabled:
         rf = RandomForestRegressor(n_estimators=850, max_depth=9,
@@ -24,8 +51,8 @@ def main():
         = xgb.XGBRegressor(learning_rate=0.03, silent=True,
                            objective="reg:logistic", gamma=2.2,
                            min_child_weight=5, subsample=0.8,
-                           colsample_bytree=0.7, n_estimators=1198,
-                           scale_pos_weight=0.6, max_depth=11)
+                           colsample_bytree=0.7, n_estimators=1092,
+                           scale_pos_weight=0.55, max_depth=11)
     print 'Fit the data with XGBoost'
     # make predictions with tuned parameters and XGBoost model
     xgb_model.fit(X_train, y_train)
