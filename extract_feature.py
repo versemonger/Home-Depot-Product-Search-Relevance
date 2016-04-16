@@ -14,7 +14,7 @@ from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
 from sklearn.metrics.pairwise import cosine_similarity
-from scipy.stats import entropy
+from scipy.stats import entropy, zscore
 from nltk.stem.porter import PorterStemmer
 
 stemmer = PorterStemmer()
@@ -63,7 +63,6 @@ def range_filter(x):
         return 8
     else:
         return x
-    return x
 
 
 def modify_zero_and_one(x):
@@ -211,10 +210,10 @@ def main():
     #                 'attributes', 'brand', 'text']
     feature_list = ['product_title', 'product_description',
                     'attributes', 'brand', 'text']
-
-    for feature in feature_list:
-        get_saperate_LSI_score(df_all, feature)
-    print 'LSI_score added.'
+    #
+    # for feature in feature_list:
+    #     get_saperate_LSI_score(df_all, feature)
+    # print 'LSI_score added.'
 
     # Coalesce all information into one column so we can apply
     # map to that one column
@@ -229,17 +228,19 @@ def main():
         .map(lambda x: len(x.split()))
     print 'title length info:'
     print df_all['title_length'][0:10]
-    print df_all['product_title'][0:10]
+
     df_all['description_length'] \
         = df_all['product_description'] \
         .map(lambda x: len(x.split()))
     print 'description length info'
     print df_all['description_length'][0:10]
-    df_all['attributes_length'] = df_all['product_info'] \
+
+    df_all['attributes_length'] = df_all['attributes'] \
         .map(lambda x: len(x.split()))
     print 'attribute length info'
     print df_all['attributes_length'][0:10]
-    df_all['brand_length'] = df_all['product_info'] \
+
+    df_all['brand_length'] = df_all['brand'] \
         .map(lambda x: len(x.split()))
     print 'brand length info'
     print df_all['brand_length'][0:10]
@@ -323,29 +324,38 @@ def main():
                  'product_description', 'product_info',
                  'attributes', 'brand'], axis=1, inplace=True)
 
-    # scale the features
-    min_max_scaler = preprocessing.MinMaxScaler()
-
-    # rescale all useful data in df
-    # A range filter is used here so that we filter too large
-    # numbers
+    # Normalize a part of data in df
+    # rescale a part of data in df
     for column in ['word_in_title', 'word_in_description',
-                   'word_in_attributes', 'word_in_brand',
-                   'title_length', 'description_length',
-                   'attributes_length', 'brand_length',
-                   'common_in_title',
-                   'common_in_description',
-                   'common_in_attributes',
-                   'common_in_brand',
-                   'length_of_search_term',
+                   'word_in_attributes', 'title_length',
+                   'description_length', 'attributes_length',
+                   'common_in_title', 'common_in_description',
+                   'common_in_attributes', 'length_of_search_term',
                    'last_search_term_in_title',
                    'last_search_term_in_description',
                    'last_search_term_in_attributes']:
+        # df_all[column] \
+        #     = pd.DataFrame(min_max_scaler
+        #                    .fit_transform(df_all[column].values.
+        #                                   reshape(-1, 1)))
+
+        df_all[column] \
+            = pd.DataFrame(zscore(df_all[column].values))
+        print column, ':'
+        print df_all[column][0:10]
+    print 'Z norm gotten.'
+    # scale the features
+    min_max_scaler = preprocessing.MinMaxScaler()
+
+    # rescale a part of data in df
+    for column in ['word_in_brand', 'common_in_brand',
+                   'brand_length']:
         df_all[column] \
             = pd.DataFrame(min_max_scaler
                            .fit_transform(df_all[column].values.
                                           reshape(-1, 1)))
-
+        print column, ':'
+        print df_all[column][0:10]
     print "rescaled"
     df_all['relevance'] = df_all['relevance'] \
         .map(lambda x: (x - 1) / 2.)
