@@ -8,6 +8,7 @@ from sklearn.metrics import mean_squared_error, make_scorer
 from sklearn import grid_search, cross_validation
 from sklearn.ensemble import RandomForestRegressor
 import numpy as np
+from training import get_indices_of_important_features
 import sys
 
 
@@ -155,7 +156,7 @@ def XGBoost_regressor2():
     all_train = xgb.DMatrix('all_train_libSVM.dat')
     test = xgb.DMatrix('test_libSVM.dat')
     validation = xgb.DMatrix('validate_libSVM.dat')
-    param = {'max_depth': 11, 'eta': 0.035, 'silent': 1,
+    param = {'max_depth': 11, 'eta': 0.03, 'silent': 1,
              'objective': 'reg:linear', 'gamma': 2.2,
              'subsample': 0.8, 'colsample_bytree': 0.7,
              'scale_pos_weight': 0.55, 'min_child_weight': 5,
@@ -180,7 +181,7 @@ def XGBoost_regressor2():
     # depth = 8 -> 0.236202
     # min_child_weight = 6 -> 0.235679
     # min_child_weight = 4 -> 0.235478
-    watchlist = [(validation, 'eval'), (all_train, 'train')]
+    watchlist = [(validation, 'eval'), (train, 'train')]
     # TODO: do data cleaning again.
     # add approximate matching
     # check KL distance
