@@ -152,7 +152,7 @@ def stem_text(s, is_search_term):
     s = re.sub(r"([0-9]+) ?(amperes|ampere|amps|amp)\.?",
                r"\1 amp. ", s)
 
-    s = re.sub(r"(air *conditioner |a *c)", "ac", s)
+    s = re.sub(r"(air *conditioner|a *c)", "ac", s)
     s = s.replace("toliet", "toilet")
     s = s.replace("vinal", "vinyl")
     s = s.replace("vynal", "vinyl")
