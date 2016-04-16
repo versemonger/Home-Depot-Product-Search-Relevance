@@ -39,7 +39,7 @@ def find_occurrences(str1, str2):
     :return:
     """
     return sum([str2.count(word) for word in str1.split()
-                if len(word) > 2])
+                if len(word) >= 2])
 
 
 def find_common_word(str1, str2):
@@ -50,7 +50,7 @@ def find_common_word(str1, str2):
     :return: The number of words in str1 that appear in str2
     """
     return sum([str2.find(word) >= 0 for word in str1.split()
-                if len(word) > 2])
+                if len(word) >= 2])
 
 
 def range_filter(x):
@@ -210,7 +210,7 @@ def main():
     # feature_list = ['product_title', 'product_description',
     #                 'attributes', 'brand', 'text']
     feature_list = ['product_title', 'product_description',
-                    'attributes', 'text']
+                    'attributes', 'brand', 'text']
 
     for feature in feature_list:
         get_saperate_LSI_score(df_all, feature)
@@ -225,25 +225,26 @@ def main():
 
     # Count number of words in each column
     df_all['title_length'] \
-        = df_all['product_info'] \
-        .map(lambda x: str(len(str(x.split('\t')[1]).split())))
+        = df_all['product_title'] \
+        .map(lambda x: len(x.split()))
+    print 'title length info:'
+    print df_all['title_length'][0:10]
+    print df_all['product_title'][0:10]
     df_all['description_length'] \
-        = df_all['product_info'] \
-        .map(lambda x: str(len(str(x.split('\t')[2]).split())))
+        = df_all['product_description'] \
+        .map(lambda x: len(x.split()))
+    print 'description length info'
+    print df_all['description_length'][0:10]
     df_all['attributes_length'] = df_all['product_info'] \
-        .map(lambda x: str(len(str(x.split('\t')[3]).split())))
+        .map(lambda x: len(x.split()))
+    print 'attribute length info'
+    print df_all['attributes_length'][0:10]
     df_all['brand_length'] = df_all['product_info'] \
-        .map(lambda x: str(len(str(x.split('\t')[4]).split())))
+        .map(lambda x: len(x.split()))
+    print 'brand length info'
+    print df_all['brand_length'][0:10]
 
     print "Number of words in each column is counted."
-    # Coalesce all information into one column so we can apply
-    # map to that one column
-    df_all['product_info'] \
-        = df_all['product_info'] + "\t" \
-          + df_all['title_length'] + "\t" \
-          + df_all['description_length'] + "\t" \
-          + df_all['attributes_length'] \
-          + "\t" + df_all['brand_length']
 
     # map find_occurrences to the separated information
     # and divide the result by length of the corresponding column
@@ -251,23 +252,19 @@ def main():
     df_all['word_in_title'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
-                     x.split('\t')[0], x.split('\t')[1]) /
-             (float(x.split('\t')[5]) + 0.1))
+                     x.split('\t')[0], x.split('\t')[1]))
     df_all['word_in_description'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
-                     x.split('\t')[0], x.split('\t')[2]) /
-             (float(x.split('\t')[6]) + 0.1))
+                     x.split('\t')[0], x.split('\t')[2]))
     df_all['word_in_attributes'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
-                     x.split('\t')[0], x.split('\t')[3]) /
-             (float(x.split('\t')[7]) + 0.1))
+                     x.split('\t')[0], x.split('\t')[3]))
     df_all['word_in_brand'] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences(
-                     x.split('\t')[0], x.split('\t')[4]) /
-             (float(x.split('\t')[8]) + 0.1))
+                     x.split('\t')[0], x.split('\t')[4]))
 
     print 'Word occurrences in each column counted'
 
@@ -291,7 +288,7 @@ def main():
     print 'Common word in each column counted'
 
     df_all['length_of_search_term'] = df_all['search_term'] \
-        .map(lambda x: len(x))
+        .map(lambda x: len(x.split()))
 
     # count occurrences of last term in search query in each
     # column
