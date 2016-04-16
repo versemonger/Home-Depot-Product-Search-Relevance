@@ -27,10 +27,9 @@ stemmed_stopwords = [stemmer.stem(stop_word)
 SVD_component_num = 12
 # We will be normalize data named with these features.
 normalize_feature_list = []
-# SVD_component_feature_list \
-#     = ['search_term', 'product_title', 'product_description',
-#        'attributes', 'brand']
-SVD_component_feature_list = ['search_term']
+SVD_component_feature_list \
+    = ['search_term', 'product_title', 'product_description',
+       'attributes', 'brand']
 
 
 def find_occurrences(str1, str2):
