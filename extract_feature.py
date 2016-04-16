@@ -6,6 +6,8 @@ http://orion.lcg.ufrj.br/Dr.Dobbs/books/book5/chap14.htm
 """
 import pandas as pd
 import sys
+
+from sklearn import preprocessing
 from sklearn.datasets import dump_svmlight_file
 import numpy as np
 from nltk.corpus import stopwords
@@ -21,7 +23,7 @@ stopwords_list = stopwords.words('english')
 stemmed_stopwords = [stemmer.stem(stop_word)
                      for stop_word in stopwords_list]
 
-SVD_component_num = 20
+SVD_component_num = 15
 # We will be normalize data named with these features.
 normalize_feature_list = []
 
@@ -324,45 +326,30 @@ def main():
                  'product_description', 'product_info',
                  'attributes', 'brand'], axis=1, inplace=True)
 
-    # Normalize all useful data in df
+    # scale the features
+    min_max_scaler = preprocessing.MinMaxScaler()
+
+    # rescale all useful data in df
     # A range filter is used here so that we filter too large
     # numbers
     for column in ['word_in_title', 'word_in_description',
-                   'word_in_attributes', 'word_in_brand']:
+                   'word_in_attributes', 'word_in_brand',
+                   'title_length', 'description_length',
+                   'attributes_length', 'brand_length',
+                   'common_in_title',
+                   'common_in_description',
+                   'common_in_attributes',
+                   'common_in_brand',
+                   'length_of_search_term',
+                   'last_search_term_in_title',
+                   'last_search_term_in_description',
+                   'last_search_term_in_attributes']:
         df_all[column] \
-            = df_all[column].map(lambda x: range_filter(float(x)))
-        mean_word_in_title = df_all[column].mean()
-        std_word_in_title = df_all[column].std()
-        df_all[column] \
-            = df_all[column] \
-            .map(
-                lambda x: (x - mean_word_in_title)
-                          / std_word_in_title)
+            = pd.DataFrame(min_max_scaler
+                           .fit_transform(df_all[column].values.
+                                          reshape(-1, 1)))
 
-    # Normalize all useful data in df
-    feature_names = ['title_length', 'description_length',
-                     'attributes_length', 'brand_length',
-                     'common_in_title',
-                     'common_in_description',
-                     'common_in_attributes',
-                     'common_in_brand',
-                     'length_of_search_term',
-                     'last_search_term_in_title',
-                     'last_search_term_in_description',
-                     'last_search_term_in_attributes']
-    normalize_feature_list.extend(feature_names)
-    for column in normalize_feature_list:
-        df_all[column] \
-            = df_all[column].map(lambda x: float(x))
-        mean_word_in_title = df_all[column].mean()
-        std_word_in_title = df_all[column].std()
-       # print std_word_in_title
-        df_all[column] \
-            = df_all[column] \
-            .map(
-                lambda x: (x - mean_word_in_title)
-                          / std_word_in_title)
-    print "normalized"
+    print "rescaled"
     df_all['relevance'] = df_all['relevance'] \
         .map(lambda x: (x - 1) / 2.)
     df_all['relevance'] = df_all['relevance'] \
