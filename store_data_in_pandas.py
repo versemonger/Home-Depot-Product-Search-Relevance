@@ -63,7 +63,7 @@ def stem_text(s, is_search_term):
     s = re.sub(r'\s', ' ', s)
 
     # replace characters like ,$?-()[]{} with spaces
-    s = re.sub(r'[,&!\$\?\-\(\)\[\]{}:]', " ", s)
+    s = re.sub(r'[,&!\$\?\-\(\)\[\]{}:<>]', " ", s)
 
     # remove . between abbreviations.
     s = re.sub(r'([A-Z])\.(?=[A-Z. ])', r"\1", s)
@@ -88,8 +88,9 @@ def stem_text(s, is_search_term):
 
     # fix something like: cleaningSeat securityStandard and so on.
     s = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', s)
-
+    s = re.sub(r'([0-9])([a-z])', r'\1 \2', s)
     s = s.lower()
+    s = re.sub(r'([a-z])([0-9])', r'\1 \2', s)
 
     # remove urls
     s = re.sub(r'https? ?[^ ]+', '', s)
@@ -130,29 +131,29 @@ def stem_text(s, is_search_term):
     s = re.sub(r' +', r' ', s)
 
     # Transform units
-    s = re.sub(r"([0-9]+) ?(inches|inch|in|')\.?", r"\1in. ", s)
-    s = re.sub(r"([0-9]+) ?(foot|feet|ft|'')\.?", r"\1ft. ", s)
-    s = re.sub(r"([0-9]+) ?(pounds|pound|lbs|lb)\.?", r"\1lb. ",
+    s = re.sub(r"([0-9]+) ?(inches|inch|in|')\.?", r"\1 in. ", s)
+    s = re.sub(r"([0-9]+) ?(foot|feet|ft|'')\.?", r"\1 ft. ", s)
+    s = re.sub(r"([0-9]+) ?(pounds|pound|lbs|lb)\.?", r"\1 lb. ",
                s)
     s = re.sub(r"([0-9]+) ?(square|sq)\.? ?(feet|foot|ft)\.?",
-               r"\1sq.ft. ", s)
+               r"\1 sq.ft. ", s)
     s = re.sub(r"([0-9]+) ?(cubic|cu)\.? ?(feet|foot|ft)\.?",
-               r"\1cu.ft. ", s)
-    s = re.sub(r"([0-9]+) ?(gallons|gallon|gal)\.?", r"\1gal. ",
+               r"\1 cu.ft. ", s)
+    s = re.sub(r"([0-9]+) ?(gallons|gallon|gal)\.?", r"\1 gal. ",
                s)
-    s = re.sub(r"([0-9]+) ?(ounces|ounce|oz)\.?", r"\1oz. ", s)
-    s = re.sub(r"([0-9]+) ?(centimeters|cm)\.?", r"\1cm. ", s)
-    s = re.sub(r"([0-9]+) ?(milimeters|mm)\.?", r"\1mm. ", s)
+    s = re.sub(r"([0-9]+) ?(ounces|ounce|oz)\.?", r"\1 oz. ", s)
+    s = re.sub(r"([0-9]+) ?(centimeters|cm)\.?", r"\1 cm. ", s)
+    s = re.sub(r"([0-9]+) ?(milimeters|mm)\.?", r"\1 mm. ", s)
 
-    s = re.sub(r"([0-9]+) ?(degrees|degree)\.?", r"\1deg. ", s)
-    s = re.sub(r' v(\. | |$)', ' volts ')
-    s = re.sub(r"([0-9]+) ?(volts|volt) *\.?", r"\1volt. ", s)
-    s = re.sub(r"([0-9]+) ?(watts|watt)\.?", r"\1watt. ", s)
+    s = re.sub(r"([0-9]+) ?(degrees|degree)\.?", r"\1 deg. ", s)
+    s = re.sub(r' v(\. | |$)', ' volts ', s)
+    s = re.sub(r"([0-9]+) ?(volts|volt) *\.?", r"\1 volt. ", s)
+    s = re.sub(r"([0-9]+) ?(watts|watt)\.?", r"\1 watt. ", s)
     s = re.sub(r"([0-9]+) ?(amperes|ampere|amps|amp)\.?",
-               r"\1amp. ", s)
+               r"\1 amp. ", s)
 
+    s = re.sub(r"(air *conditioner |a *c)", "ac", s)
     s = s.replace("toliet", "toilet")
-    s = s.replace("airconditioner", "air conditioner")
     s = s.replace("vinal", "vinyl")
     s = s.replace("vynal", "vinyl")
     s = s.replace("skill", "skil")
