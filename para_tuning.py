@@ -19,8 +19,11 @@ def fmean_squared_error(ground_truth, predictions):
     :param predictions:
     :return:
     """
+    real_ground_truth = ground_truth
+    real_ground_truth[real_ground_truth < 0.0001] = 0
+    real_ground_truth[real_ground_truth > 0.9999] = 1
     fmean_squared_error_ =\
-        mean_squared_error(ground_truth, predictions)**0.5
+        mean_squared_error(real_ground_truth, predictions)**0.5
     # 2 is added as a result of rescaling of target
     return 2 * fmean_squared_error_
 
@@ -184,12 +187,17 @@ def XGBoost_regressor2():
     # depth = 8 -> 0.236202
     # min_child_weight = 6 -> 0.235679
     # min_child_weight = 4 -> 0.235478
+
+    ###### as of April 16
+    # 3500, 0.01, 0.238908
+    # 1500, 0.03, 0.238893
+    # 750, 0.06, 0.239034
     watchlist = [(validation, 'eval'), (train, 'train')]
     # TODO: do data cleaning again.
     # add approximate matching
     # check KL distance
     # n = 1096
-    num_round = 1000
+    num_round = 1500
     xgb_model = xgb.train(param, train, num_round, watchlist)
     # xgb_model = xgb.cv(param, all_train, num_round, nfold=5,
     #                    metrics={'error'})
@@ -220,9 +228,9 @@ def XGBoost_regressor2():
 def main():
     X_train = np.load('X_train_with_SVD.npy')
     y_train = np.load('Y_train.npy')
-    # XGBoost_regressor2()
+    XGBoost_regressor2()
     # random_forest_regressor(X_train, y_train, False)
-    XGBoost_regressor1(X_train, y_train, True)
+    # XGBoost_regressor1(X_train, y_train, True)
 
 if __name__ == '__main__':
     main()
