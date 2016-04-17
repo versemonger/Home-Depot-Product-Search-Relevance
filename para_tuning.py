@@ -21,7 +21,8 @@ def fmean_squared_error(ground_truth, predictions):
     """
     fmean_squared_error_ =\
         mean_squared_error(ground_truth, predictions)**0.5
-    return fmean_squared_error_
+    # 2 is added as a result of rescaling of target
+    return 2 * fmean_squared_error_
 
 
 
@@ -88,6 +89,7 @@ def XGBoost_regressor1(X_train, y_train, cv_flag):
     :param y_train: target vector of training data
 
     """
+    indices = get_indices_of_important_features(0.2)
     # Some set of parameter grids I have used
     #              'gamma': [2.20, 2.25, 2.3, 2.35],
     #          'min_child_weight': [0.3, 0.6, 1, 2]
@@ -96,6 +98,7 @@ def XGBoost_regressor1(X_train, y_train, cv_flag):
     #              'min_child_weight': [0.5, 1, 1.5, 2]
 
     # Builder scorer which is used to do grid search for XGBoost
+    X_train = np.array(X_train)[:, indices]
     rmse = make_scorer(fmean_squared_error,
                        greater_is_better=False)
 
@@ -131,19 +134,19 @@ def XGBoost_regressor1(X_train, y_train, cv_flag):
     # 0.6 for scale_pos_weight
     # 0.7 for colsample_bytree
     param_grid = {'gamma': [2.15, 2.2, 2.25],
-                  'scale_pos_weight': [0.55, 0.6, 0.65]}
+                  'max_depth': [9, 10, 11]}
 
     # Do grid search with a set of parameters for XGBoost.
     model \
         = grid_search\
         .GridSearchCV(estimator=xgb_model, param_grid=param_grid,
-                      n_jobs=4, cv=3, verbose=20, scoring=rmse)
+                      n_jobs=-1, cv=3, verbose=20, scoring=rmse)
     print 'start search'
     model.fit(X_train, y_train)
     print("Best parameters found by grid search:")
     print(model.best_params_)
     print("Best CV score:")
-    print(-model.best_score_)
+    print(- model.best_score_)
 
 
 def XGBoost_regressor2():
@@ -199,10 +202,10 @@ def XGBoost_regressor2():
     sorted_importance = sorted(importance.items(),
                                key=operator.itemgetter(1))
     print sorted_importance
-    importance_of_feature_file\
-        = open('importance_of_feature_file', 'w')
-    pickle.dump(sorted_importance, importance_of_feature_file)
-    importance_of_feature_file.close()
+    # importance_of_feature_file\
+    #     = open('importance_of_feature_file', 'w')
+    # pickle.dump(sorted_importance, importance_of_feature_file)
+    # importance_of_feature_file.close()
 
     xgb.plot_importance(xgb_model)
     test_id = pd.read_pickle('id_test')
@@ -215,11 +218,11 @@ def XGBoost_regressor2():
 
 
 def main():
-    X_train = pd.read_pickle('X_train').values
-    y_train = pd.read_pickle('y_train').values
-    XGBoost_regressor2()
+    X_train = np.load('X_train_with_SVD.npy')
+    y_train = np.load('Y_train.npy')
+    # XGBoost_regressor2()
     # random_forest_regressor(X_train, y_train, False)
-    # XGBoost_regressor1(X_train, y_train, True)
+    XGBoost_regressor1(X_train, y_train, True)
 
 if __name__ == '__main__':
     main()

@@ -37,7 +37,6 @@ def main():
     X_train = X_train[:, indices]
     X_test = X_test[:, indices]
     print X_train.shape
-    sys.exit()
     rf_enabled = False
     if rf_enabled:
         rf = RandomForestRegressor(n_estimators=850, max_depth=9,
