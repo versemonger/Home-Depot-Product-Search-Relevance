@@ -226,6 +226,13 @@ def main():
         'attributes': df_color_agg['color']
             .get_values()})
 
+    df_product_attribute \
+        = df_product_attribute[
+          df_product_attribute.name != 'MFG Brand Name' &
+          df_product_attribute.name != 'Material' &
+          df_product_attribute.name != 'Color Family' &
+          df_product_attribute.name != 'Color/Finish']
+
     train_num = df_train.shape[0]
 
     # merge different tables.
@@ -257,7 +264,7 @@ def main():
     print 'title info processed'
     df_all['product_description'] = \
         df_all['product_description'] \
-        .map(lambda s: stem_text(s, False))
+            .map(lambda s: stem_text(s, False))
     print 'description processed'
     df_all['attributes'] = df_all['attributes'] \
         .map(lambda s: stem_text(s, False))
