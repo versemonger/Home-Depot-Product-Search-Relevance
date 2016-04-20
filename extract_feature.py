@@ -46,6 +46,23 @@ def find_occurrences(str1, str2):
                 if len(word) >= 1])
 
 
+def find_occurrences2(str1, str2):
+    """
+    find in str2 occurrences of each pair of adjacent words in str1
+    example: str1 = "good job", str2 = "good job good job"
+    its occurrence is 2.
+    :param str1:
+    :param str2:
+    :return:
+    """
+    word_list = [word for word in str1.split() if len(word >= 1)]
+    new_word_list = []
+    for i in range(len(word_list) - 1):
+        new_word_list.append(word_list[i] + ' ' + word_list[i + 1])
+    return sum([str2.count(word_pair) for word_pair
+                in new_word_list])
+
+
 def find_common_word(str1, str2):
     """
     find number of common words in str1 and str2
@@ -208,6 +225,79 @@ def get_last_term(x):
         return ''
 
 
+def extract_occurrence_and_ratio(df_all, occurr1, index,
+                                 ratio_name_1, length):
+    """
+
+    :param length: name of the length column of the attribute
+    :param df_all: the whole data frame
+    :param occurr1: column where we want to find occurrence of
+                    single search term words
+    :param occurr2: column where we want to find occurrence of
+                    pair of search term words
+    :param index: index of the column in the text separated with
+                  tab
+    :param ratio_name_1: occurrence of occurr1 divided by length of
+                    that column
+    :param ratio_name_2: occurrence of occurr2 divided by length of
+                    that column
+
+    """
+    df_all[occurr1] = df_all['product_info'] \
+        .map(lambda x:
+             find_occurrences(
+                     x.split('\t')[0], x.split('\t')[index]))
+
+    ratio = df_all[occurr1].values / \
+            df_all[length].values.astype(float)
+    ratio[np.isinf(ratio)] = 0
+    ratio = np.nan_to_num(ratio)
+    df_all[ratio_name_1] \
+        = pd.DataFrame(ratio)
+
+
+def extract_occurrence_and_ratio(df_all, occurr1, index,
+                                 ratio_name_1, length, occurr2,
+                                 ratio_name_2):
+    """
+    :param length: name of the length column of the attribute
+    :param df_all: the whole data frame
+    :param occurr1: column where we want to find occurrence of
+                    single search term words
+    :param occurr2: column where we want to find occurrence of
+                    pair of search term words
+    :param index: index of the column in the text separated with
+                  tab
+    :param ratio_name_1: occurrence of occurr1 divided by length of
+                    that column
+    :param ratio_name_2: occurrence of occurr2 divided by length of
+                    that column
+
+    """
+    df_all[occurr1] = df_all['product_info'] \
+        .map(lambda x:
+             find_occurrences(
+                     x.split('\t')[0], x.split('\t')[index]))
+
+    ratio = df_all[occurr1].values / \
+            df_all[length].values.astype(float)
+    ratio[np.isinf(ratio)] = 0
+    ratio = np.nan_to_num(ratio)
+    df_all[ratio_name_1] \
+        = pd.DataFrame(ratio)
+
+    df_all[occurr2] = df_all['product_info'] \
+        .map(lambda x:
+             find_occurrences2(
+                     x.split('\t')[0], x.split('\t')[index]))
+    ratio2 = df_all[occurr2].values / \
+             df_all[length].values.astype(float)
+    ratio2[np.isinf(ratio2)] = 0
+    ratio2 = np.nan_to_num(ratio2)
+    df_all[ratio_name_2] \
+        = pd.DataFrame(ratio2)
+
+
 def main():
     # import the number of training tuples
     df_train = pd.read_csv("train.csv", encoding="ISO-8859-1")
@@ -228,9 +318,9 @@ def main():
     # map to that one column
     df_all['product_info'] \
         = df_all['search_term'] + "\t" + df_all['product_title'] \
-        + "\t" + df_all['product_description'] + "\t" \
-        + df_all['attributes'] + "\t" + df_all['brand'] + '\t' \
-        + df_all['material']
+          + "\t" + df_all['product_description'] + "\t" \
+          + df_all['attributes'] + "\t" + df_all['brand'] + '\t' \
+          + df_all['material']
 
     # Count number of words in each column
     df_all['title_length'] \
@@ -257,55 +347,92 @@ def main():
 
     print "Number of words in each column is counted."
 
-    # map find_occurrences to the separated information
-    # and divide the result by length of the corresponding column
-    # content
-    df_all['word_in_title'] = df_all['product_info'] \
-        .map(lambda x:
-             find_occurrences(
-                     x.split('\t')[0], x.split('\t')[1]))
+    args1 = ['title', 'description', 'attributes']
+    for index in [0, 1, 2, 3]:
+        occurr1 = 'word_in_' + args1[index]
+        ratio_name1 = args1[index] + '_ratio'
+        length = args1[index] + '_length'
+        occurr2 = 'word_pair_in_' + args1[index]
+        ratio_name2 = ratio_name1 + '_pair'
+        if index != 3:
+            extract_occurrence_and_ratio(df_all, occurr1, index,
+                                         ratio_name1, length,
+                                         occurr2, ratio_name2)
+        else:
+            extract_occurrence_and_ratio(df_all, occurr1, index,
+                                         ratio_name1, length)
 
-    title_ratio = df_all['word_in_title'].values / \
-        df_all['title_length'].values.astype(float)
-    title_ratio[np.isinf(title_ratio)] = 0
-    title_ratio = np.nan_to_num(title_ratio)
-    df_all['title_ratio']\
-        = pd.DataFrame(title_ratio)
-
-    df_all['word_in_description'] = df_all['product_info'] \
-        .map(lambda x:
-             find_occurrences(
-                     x.split('\t')[0], x.split('\t')[2]))
-
-    description_ratio = df_all['word_in_description'].values / \
-        df_all['description_length'].values.astype(float)
-    description_ratio[np.isinf(description_ratio)] = 0
-    description_ratio = np.nan_to_num(description_ratio)
-    df_all['description_ratio']\
-        = pd.DataFrame(description_ratio)
-
-    df_all['word_in_attributes'] = df_all['product_info'] \
-        .map(lambda x:
-             find_occurrences(
-                     x.split('\t')[0], x.split('\t')[3]))
-
-    attributes_ratio = df_all['word_in_attributes'].values / \
-        df_all['attributes_length'].values.astype(float)
-    attributes_ratio[np.isinf(attributes_ratio)] = 0
-    attributes_ratio = np.nan_to_num(attributes_ratio)
-    df_all['attributes_ratio']\
-        = pd.DataFrame(attributes_ratio)
-
-    df_all['word_in_brand'] = df_all['product_info'] \
-        .map(lambda x:
-             find_occurrences(
-                     x.split('\t')[0], x.split('\t')[4]))
-    brand_ratio = df_all['word_in_brand'].values / \
-        df_all['brand_length'].values.astype(float)
-    brand_ratio[np.isinf(brand_ratio)] = 0
-    brand_ratio = np.nan_to_num(brand_ratio)
-    df_all['brand_ratio']\
-        = pd.DataFrame(brand_ratio)
+    # # map find_occurrences to the separated information
+    # # and divide the result by length of the corresponding column
+    # # content
+    # df_all['word_in_title'] = df_all['product_info'] \
+    #     .map(lambda x:
+    #          find_occurrences(
+    #                  x.split('\t')[0], x.split('\t')[1]))
+    #
+    # df_all['word_pair_in_title'] = df_all['product_info'] \
+    #     .map(lambda x:
+    #          find_occurrences2(
+    #                  x.split('\t')[0], x.split('\t')[1]))
+    #
+    # title_ratio = df_all['word_in_title'].values / \
+    #               df_all['title_length'].values.astype(float)
+    # title_ratio[np.isinf(title_ratio)] = 0
+    # title_ratio = np.nan_to_num(title_ratio)
+    # df_all['title_ratio'] \
+    #     = pd.DataFrame(title_ratio)
+    #
+    # title_ratio_pair = df_all['word_pair_in_title'].values / \
+    #                    df_all['title_length'].values.astype(float)
+    # title_ratio_pair[np.isinf(title_ratio)] = 0
+    # title_ratio_pair = np.nan_to_num(title_ratio)
+    # df_all['title_ratio_pair'] \
+    #     = pd.DataFrame(title_ratio_pair)
+    #
+    # df_all['word_in_description'] = df_all['product_info'] \
+    #     .map(lambda x:
+    #          find_occurrences(
+    #                  x.split('\t')[0], x.split('\t')[2]))
+    # df_all['word_pair_in_description'] = df_all['product_info'] \
+    #     .map(lambda x:
+    #          find_occurrences2(
+    #                  x.split('\t')[0], x.split('\t')[2]))
+    #
+    # description_ratio = df_all['word_in_description'].values / \
+    #                     df_all['description_length'].values.astype(
+    #                         float)
+    # description_ratio[np.isinf(description_ratio)] = 0
+    # description_ratio = np.nan_to_num(description_ratio)
+    # df_all['description_ratio'] \
+    #     = pd.DataFrame(description_ratio)
+    #
+    # df_all['word_in_attributes'] = df_all['product_info'] \
+    #     .map(lambda x:
+    #          find_occurrences(
+    #                  x.split('\t')[0], x.split('\t')[3]))
+    # df_all['word_pair_in_attributes'] = df_all['product_info'] \
+    #     .map(lambda x:
+    #          find_occurrences2(
+    #                  x.split('\t')[0], x.split('\t')[3]))
+    #
+    # attributes_ratio = df_all['word_in_attributes'].values / \
+    #                    df_all['attributes_length'].values.astype(
+    #                        float)
+    # attributes_ratio[np.isinf(attributes_ratio)] = 0
+    # attributes_ratio = np.nan_to_num(attributes_ratio)
+    # df_all['attributes_ratio'] \
+    #     = pd.DataFrame(attributes_ratio)
+    #
+    # df_all['word_in_brand'] = df_all['product_info'] \
+    #     .map(lambda x:
+    #          find_occurrences(
+    #                  x.split('\t')[0], x.split('\t')[4]))
+    # brand_ratio = df_all['word_in_brand'].values / \
+    #               df_all['brand_length'].values.astype(float)
+    # brand_ratio[np.isinf(brand_ratio)] = 0
+    # brand_ratio = np.nan_to_num(brand_ratio)
+    # df_all['brand_ratio'] \
+    #     = pd.DataFrame(brand_ratio)
 
     print 'Word occurrences in each column counted.'
     print 'Ratios calculated.'
@@ -331,11 +458,11 @@ def main():
     df_all['common_in_color'] = df_all['product_info'] \
         .map(lambda x:
              find_common_word(
-                 x.split('\t')[0], x.split('\t')[5]))
+                     x.split('\t')[0], x.split('\t')[5]))
     df_all['common_in_material'] = df_all['product_info'] \
         .map(lambda x:
              find_common_word(
-                 x.split('\t')[0], x.split('\t')[6]))
+                     x.split('\t')[0], x.split('\t')[6]))
 
     print 'Common words in each column counted'
     df_all['length_of_search_term'] = df_all['search_term'] \
@@ -396,7 +523,7 @@ def main():
              'last_search_term_in_description',
              'last_search_term_in_attributes',
              'title_ratio', 'description_ratio',
-             'attributes_ratio'])
+             'attributes_ratio', ])
 
     # Normalize a part of data in df
     for column in normalize_feature_list:
@@ -411,7 +538,7 @@ def main():
 
     # rescale a part of data in df
     for column in ['word_in_brand', 'common_in_brand',
-                   'brand_length',  'brand_ratio',
+                   'brand_length', 'brand_ratio',
                    'common_in_color', 'common_in_material']:
         df_all[column] \
             = pd.DataFrame(min_max_scaler
