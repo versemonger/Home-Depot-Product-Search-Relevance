@@ -189,11 +189,31 @@ def main():
         [['product_uid', 'value']].rename(
             columns={'value': 'color'})
 
+    # aggregate color values
+    df_color_agg = df_color \
+        .groupby('product_uid') \
+        .agg(lambda ls: " ".join([str(text) for text in ls]))
+    df_color \
+        = pd.DataFrame({
+        'product_uid': df_color_agg['color']
+            .keys(),
+        'color': df_color_agg['color']
+            .get_values()})
+
     # extract material for each product
     df_material = df_product_attribute \
         [df_product_attribute.name == "Material"] \
         [['product_uid', 'value']].rename(
             columns={'value': 'material'})
+    df_material_agg = df_material \
+        .groupby('product_uid') \
+        .agg(lambda ls: " ".join([str(text) for text in ls]))
+    df_material \
+        = pd.DataFrame({
+        'product_uid': df_material_agg['material']
+            .keys(),
+        'material': df_material_agg['material']
+            .get_values()})
 
     df_product_attribute \
         = df_product_attribute[
@@ -222,16 +242,7 @@ def main():
         'attributes': df_product_attribute_agg['attributes']
             .get_values()})
 
-    # aggregate color values
-    df_color_agg = df_color \
-        .groupby('product_uid') \
-        .agg(lambda ls: " ".join([str(text) for text in ls]))
-    df_color \
-        = pd.DataFrame({
-        'product_uid': df_color_agg['color']
-            .keys(),
-        'color': df_color_agg['color']
-            .get_values()})
+
 
     print 'All data obtained.'
 
