@@ -29,7 +29,7 @@ SVD_component_num = 12
 normalize_feature_list = []
 SVD_component_feature_list \
     = ['search_term', 'product_title', 'product_description',
-       'attributes', 'brand']
+       'attributes', 'brand', 'color', 'material']
 
 
 def find_occurrences(str1, str2):
@@ -55,7 +55,7 @@ def find_occurrences2(str1, str2):
     :param str2:
     :return:
     """
-    word_list = [word for word in str1.split() if len(word >= 1)]
+    word_list = [word for word in str1.split() if len(word) >= 1]
     new_word_list = []
     for i in range(len(word_list) - 1):
         new_word_list.append(word_list[i] + ' ' + word_list[i + 1])
@@ -225,7 +225,7 @@ def get_last_term(x):
         return ''
 
 
-def extract_occurrence_and_ratio(df_all, occurr1, index,
+def extract_occurrence_and_ratio_short(df_all, occurr1, index,
                                  ratio_name_1, length):
     """
 
@@ -278,6 +278,8 @@ def extract_occurrence_and_ratio(df_all, occurr1, index,
         .map(lambda x:
              find_occurrences(
                      x.split('\t')[0], x.split('\t')[index]))
+    print occurr1 + 'info processed'
+    print df_all[occurr1][0:10]
 
     ratio = df_all[occurr1].values / \
             df_all[length].values.astype(float)
@@ -285,17 +287,24 @@ def extract_occurrence_and_ratio(df_all, occurr1, index,
     ratio = np.nan_to_num(ratio)
     df_all[ratio_name_1] \
         = pd.DataFrame(ratio)
+    print ratio_name_1 + 'info processed'
+    print df_all[ratio_name_1][0:10]
 
     df_all[occurr2] = df_all['product_info'] \
         .map(lambda x:
              find_occurrences2(
                      x.split('\t')[0], x.split('\t')[index]))
+    print occurr2 + 'info processed'
+    print df_all[occurr2][0:10]
+
     ratio2 = df_all[occurr2].values / \
              df_all[length].values.astype(float)
     ratio2[np.isinf(ratio2)] = 0
     ratio2 = np.nan_to_num(ratio2)
     df_all[ratio_name_2] \
         = pd.DataFrame(ratio2)
+    print ratio_name_2 + 'info processed'
+    print df_all[ratio_name_2][0:10]
 
 
 def main():
@@ -309,10 +318,10 @@ def main():
     #                 'attributes', 'brand', 'text']
     feature_list = ['product_title', 'product_description',
                     'attributes', 'brand', 'text']
-
-    for feature in feature_list:
-        get_saperate_LSI_score(df_all, feature)
-    print 'LSI_score added.'
+    #
+    # for feature in feature_list:
+    #     get_saperate_LSI_score(df_all, feature)
+    # print 'LSI_score added.'
 
     # Coalesce all information into one column so we can apply
     # map to that one column
@@ -320,7 +329,7 @@ def main():
         = df_all['search_term'] + "\t" + df_all['product_title'] \
           + "\t" + df_all['product_description'] + "\t" \
           + df_all['attributes'] + "\t" + df_all['brand'] + '\t' \
-          + df_all['material']
+          + df_all['color'] + '\t' + df_all['material']
 
     # Count number of words in each column
     df_all['title_length'] \
@@ -347,7 +356,7 @@ def main():
 
     print "Number of words in each column is counted."
 
-    args1 = ['title', 'description', 'attributes']
+    args1 = ['title', 'description', 'attributes', 'brand']
     for index in [0, 1, 2, 3]:
         occurr1 = 'word_in_' + args1[index]
         ratio_name1 = args1[index] + '_ratio'
@@ -359,8 +368,9 @@ def main():
                                          ratio_name1, length,
                                          occurr2, ratio_name2)
         else:
-            extract_occurrence_and_ratio(df_all, occurr1, index,
-                                         ratio_name1, length)
+            extract_occurrence_and_ratio_short(df_all, occurr1,
+                                               index, ratio_name1,
+                                               length)
 
     # # map find_occurrences to the separated information
     # # and divide the result by length of the corresponding column
@@ -499,7 +509,8 @@ def main():
 
     df_all.drop(['search_term', 'product_title',
                  'product_description', 'product_info',
-                 'attributes', 'brand'], axis=1, inplace=True)
+                 'attributes', 'brand', 'color', 'material'],
+                axis=1, inplace=True)
 
     normalize_filtered_feature = ['word_in_title',
                                   'word_in_description',
