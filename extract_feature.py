@@ -228,8 +228,9 @@ def main():
     # map to that one column
     df_all['product_info'] \
         = df_all['search_term'] + "\t" + df_all['product_title'] \
-          + "\t" + df_all['product_description'] + "\t" \
-          + df_all['attributes'] + "\t" + df_all['brand']
+        + "\t" + df_all['product_description'] + "\t" \
+        + df_all['attributes'] + "\t" + df_all['brand'] + '\t' \
+        + df_all['material']
 
     # Count number of words in each column
     df_all['title_length'] \
@@ -326,8 +327,17 @@ def main():
         .map(lambda x:
              find_common_word(
                      x.split('\t')[0], x.split('\t')[4]))
-    print 'Common words in each column counted'
 
+    df_all['common_in_color'] = df_all['product_info'] \
+        .map(lambda x:
+             find_common_word(
+                 x.split('\t')[0], x.split('\t')[5]))
+    df_all['common_in_material'] = df_all['product_info'] \
+        .map(lambda x:
+             find_common_word(
+                 x.split('\t')[0], x.split('\t')[6]))
+
+    print 'Common words in each column counted'
     df_all['length_of_search_term'] = df_all['search_term'] \
         .map(lambda x: len(x.split()))
 
@@ -358,7 +368,7 @@ def main():
     # preserve the strings for svd reduction.
     df_info = df_all[['search_term', 'product_title',
                       'product_description', 'attributes',
-                      'brand']]
+                      'brand', 'color', 'material']]
 
     df_all.drop(['search_term', 'product_title',
                  'product_description', 'product_info',
@@ -401,7 +411,8 @@ def main():
 
     # rescale a part of data in df
     for column in ['word_in_brand', 'common_in_brand',
-                   'brand_length',  'brand_ratio']:
+                   'brand_length',  'brand_ratio',
+                   'common_in_color', 'common_in_material']:
         df_all[column] \
             = pd.DataFrame(min_max_scaler
                            .fit_transform(df_all[column].values.
