@@ -503,7 +503,10 @@ def main():
 
     normalize_filtered_feature = ['word_in_title',
                                   'word_in_description',
-                                  'word_in_attributes']
+                                  'word_in_attributes',
+                                  'word_pair_in_title',
+                                  'word_pair_in_description',
+                                  'word_pair_in_attributes']
 
     # Normalize a part of data in df
     for column in normalize_filtered_feature:
@@ -523,7 +526,8 @@ def main():
              'last_search_term_in_description',
              'last_search_term_in_attributes',
              'title_ratio', 'description_ratio',
-             'attributes_ratio', ])
+             'attributes_ratio', 'title_ratio_pair',
+             'description_ratio_pair', 'attributes_ratio_pair'])
 
     # Normalize a part of data in df
     for column in normalize_feature_list:
