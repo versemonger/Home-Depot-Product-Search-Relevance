@@ -30,13 +30,13 @@ def get_indices_of_important_features(portion):
 
 
 def main():
-    indices = get_indices_of_important_features(0.2)
+    #indices = get_indices_of_important_features(0.05)
     X_train = np.load('X_train_with_SVD.npy')
     X_test = np.load('X_test_with_SVD.npy')
     y_train = np.load('Y_train.npy')
-    X_train = X_train[:, indices]
-    X_test = X_test[:, indices]
-    print X_train.shape
+    # X_train = X_train[:, indices]
+    # X_test = X_test[:, indices]
+    # print X_train.shape
     rf_enabled = False
     if rf_enabled:
         rf = RandomForestRegressor(n_estimators=850, max_depth=9,
