@@ -106,7 +106,7 @@ def stem_text(s, is_search_term):
     s = s.replace(' / ', ' ')
 
     # remove adjacent spaces
-    s = re.sub(r' +',  ' ', s)
+    s = re.sub(r' +', ' ', s)
 
     # replace one two and so on with 1 2 and so on
     s = " ".join([str(strNum[z])
@@ -182,6 +182,19 @@ def main():
         [['product_uid', 'value']].rename(
             columns={'value': 'brand'})
 
+    # extract color for each product
+    df_color = df_product_attribute \
+        [df_product_attribute.name == 'Color Family' |
+         df_product_attribute.name == 'Color/Finish'] \
+        [['product_uid', 'value']].rename(
+            columns={'value': 'color'})
+
+    # extract material for each product
+    df_material = df_product_attribute \
+        [df_product_attribute.name == "Material"] \
+        [['product_uid', 'value']].rename(
+            columns={'value': 'material'})
+
     # extract product id and attribute values
     df_product_attribute_selected \
         = df_product_attribute[['product_uid', 'value']] \
@@ -202,6 +215,17 @@ def main():
         'attributes': df_product_attribute_agg['attributes']
             .get_values()})
 
+    # aggregate color values
+    df_color_agg = df_color \
+        .groupby('product_uid') \
+        .agg(lambda ls: " ".join([str(text) for text in ls]))
+    df_color \
+        = pd.DataFrame({
+        'product_uid': df_color_agg['color']
+            .keys(),
+        'attributes': df_color_agg['color']
+            .get_values()})
+
     train_num = df_train.shape[0]
 
     # merge different tables.
@@ -212,6 +236,10 @@ def main():
     df_all = pd.merge(df_all, df_product_attribute, how='left',
                       on='product_uid')
     df_all = pd.merge(df_all, df_brand, how='left',
+                      on='product_uid')
+    df_all = pd.merge(df_all, df_color, how='left',
+                      on='product_uid')
+    df_all = pd.merge(df_all, df_material, how='left',
                       on='product_uid')
 
     # store merged text
@@ -229,10 +257,17 @@ def main():
     print 'title info processed'
     df_all['product_description'] = \
         df_all['product_description'] \
-            .map(lambda s: stem_text(s, False))
+        .map(lambda s: stem_text(s, False))
     print 'description processed'
     df_all['attributes'] = df_all['attributes'] \
         .map(lambda s: stem_text(s, False))
+    print 'attributes processed'
+    df_all['color'] = df_all['color'] \
+        .map(lambda s: stem_text(s, False))
+    print 'color processed'
+    df_all['material'] = df_all['material'] \
+        .map(lambda s: stem_text(s, False))
+    print 'material processed'
 
     # save the whole df
     df_all.to_pickle('df_all')
