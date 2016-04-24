@@ -197,14 +197,14 @@ def get_synonym(s):
         if len(word) == 0:
             continue
         if ord(word[0]) > 57 or ord(word[0]) < 48:
-            terms.extend(synonym_dict.synonym(word))
-    return ' '.join(terms)
+            synonyms = synonym_dict.synonym(word)
+            if synonyms:
+                terms.extend(synonyms)
+    result = ' '.join(terms)
+    return result
 
 
 def main():
-    print get_synonym('1 good')
-    sys.exit()
-
     # input all data sets
     df_train = pd.read_csv("train.csv", encoding="ISO-8859-1")
     df_test = pd.read_csv("test.csv", encoding="ISO-8859-1")
