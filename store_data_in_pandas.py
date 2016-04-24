@@ -10,6 +10,9 @@ import sys
 from nltk.corpus import stopwords
 import re
 from nltk.stem.snowball import SnowballStemmer
+from PyDictionary import PyDictionary
+
+synonym_dict = PyDictionary()
 
 # load spell checking dictionary
 spell_check_dict = open('spellCheckingDict', 'r')
@@ -38,12 +41,12 @@ def remove_non_ascii(s):
     return "".join([char for char in s if 0 <= ord(char) < 128])
 
 
-def stem_text(s, is_search_term):
+def preprocessing(s, is_search_term):
     """
-    stem the text.
+    preprocess the text.
     :param is_search_term: if true, spell check s.
     :param s: a string of text
-    :return: stemmed text string
+    :return: processed text string
     """
     if is_search_term and s in spell_check_dict_:
         print s, '-->',
@@ -110,7 +113,8 @@ def stem_text(s, is_search_term):
 
     # replace one two and so on with 1 2 and so on
     s = " ".join([str(strNum[z])
-                  if z in strNum else z for z in s.split(" ")])
+                  if z in strNum else z for z
+                  in s.strip().split(' ')])
 
     s = re.sub(r'([a-z]) *[/\\\\] *([a-z])', r'\1 \2', s)
     s = re.sub(r'([0-9])\\\\([0-9])', r'\1/\2', s)
@@ -164,12 +168,43 @@ def stem_text(s, is_search_term):
     s = s.replace("whirlpoolga", "whirlpool ga")
     s = s.replace("whirlpoolstainless", "whirlpool stainless")
     s = re.sub(r' +', r' ', s)
-    s = " ".join([stemmer.stem(z) for z in s.split(" ") if
+    return s
+
+
+def stem_text(s, is_search_term):
+    """
+    stem the text.
+    :param is_search_term: if true, spell check s.
+    :param s: a string of text
+    :return: stemmed text string
+    """
+    if not is_search_term:
+        s = preprocessing(s, is_search_term)
+    s = " ".join([stemmer.stem(z) for z in s.strip().split(" ") if
                   z not in stopwords_set])
     return s
 
 
+def get_synonym(s):
+    """
+    find synonyms of all search terms and join them into a new
+    field
+    :param s: a string of search terms
+    :return: a string of synonyms of the search terms
+    """
+    terms = []
+    for word in s.strip().split(' '):
+        if len(word) == 0:
+            continue
+        if ord(word[0]) > 57 or ord(word[0]) < 48:
+            terms.extend(synonym_dict.synonym(word))
+    return ' '.join(terms)
+
+
 def main():
+    print get_synonym('1 good')
+    sys.exit()
+
     # input all data sets
     df_train = pd.read_csv("train.csv", encoding="ISO-8859-1")
     df_test = pd.read_csv("test.csv", encoding="ISO-8859-1")
@@ -273,6 +308,11 @@ def main():
     df_all['brand'] = df_all['brand'] \
         .map(lambda s: stem_text(s, False))
     print 'Brand info processed.'
+    df_all['search_term'] = df_all['search_term'] \
+        .map(lambda s: preprocessing(s, True))
+    df_all['search_term_synonym'] = df_all['search_term'] \
+        .map(lambda s: get_synonym(s))
+    print 'Synonym of search terms added.'
     df_all['search_term'] = df_all['search_term'] \
         .map(lambda s: stem_text(s, True))
     print 'Search_term processed.'
