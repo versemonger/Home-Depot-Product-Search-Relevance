@@ -336,14 +336,15 @@ def main():
     df_train = None
 
     df_all = pd.read_pickle('df_all')
+#    train_num = len(df_all.index) / 2
     # feature_list = ['product_title', 'product_description',
     #                 'attributes', 'brand', 'text']
     feature_list = ['product_title', 'product_description',
                     'attributes', 'brand', 'text']
 
-    for feature in feature_list:
-        get_saperate_LSI_score(df_all, feature)
-    print 'LSI_score added.'
+    # for feature in feature_list:
+    #     get_saperate_LSI_score(df_all, feature)
+    # print 'LSI_score added.'
 
     # Coalesce all information into one column so we can apply
     # map to that one column
@@ -429,7 +430,7 @@ def main():
     print 'Common words counted'
 
     print 'Common words in each column counted'
-    # TODO: normalize it or not?
+
     df_all['search_term_length'] = df_all['search_term'] \
         .map(lambda x: len(x.split()))
 
@@ -476,7 +477,7 @@ def main():
                                   'word_pair_in_description',
                                   'word_pair_in_attributes',
                                   'word_in_title_syn',
-                                  'word_in_description_syn'
+                                  'word_in_description_syn',
                                   'word_in_attributes_syn']
 
     # Normalize a part of data in df
@@ -493,7 +494,7 @@ def main():
             ['title_length', 'description_length',
              'attributes_length', 'common_in_title',
              'common_in_description', 'common_in_attributes',
-             'length_of_search_term', 'last_search_term_in_title',
+             'search_term_length', 'last_search_term_in_title',
              'last_search_term_in_description',
              'last_search_term_in_attributes',
              'title_ratio', 'description_ratio',
