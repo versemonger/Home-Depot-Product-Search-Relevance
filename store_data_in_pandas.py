@@ -167,6 +167,8 @@ def preprocessing(s, is_search_term):
     s = s.replace("whirpool", "whirlpool")
     s = s.replace("whirlpoolga", "whirlpool ga")
     s = s.replace("whirlpoolstainless", "whirlpool stainless")
+    s = s.replace('refrigeratorators', 'fridge')
+    s = s.replace('refrigerator', 'fridge')
     s = re.sub(r' +', r' ', s)
     return s
 
@@ -200,6 +202,8 @@ def get_synonym(s):
             synonyms = synonym_dict.synonym(word)
             if synonyms:
                 terms.extend(synonyms)
+            else:
+                terms.append(word)
     result = ' '.join(terms)
     return result
 
@@ -219,14 +223,6 @@ def df_process(df_all):
     df_all['brand'] = df_all['brand'] \
         .map(lambda s: stem_text(s, False))
     print 'Brand info processed.'
-    df_all['search_term'] = df_all['search_term'] \
-        .map(lambda s: preprocessing(s, True))
-    df_all['search_term_synonym'] = df_all['search_term'] \
-        .map(lambda s: get_synonym(s))
-    print 'Synonym of search terms added.'
-    df_all['search_term'] = df_all['search_term'] \
-        .map(lambda s: stem_text(s, True))
-    print 'Search_term processed.'
     df_all['product_title'] = df_all['product_title'] \
         .map(lambda s: stem_text(s, False))
     print 'title info processed'
@@ -237,6 +233,14 @@ def df_process(df_all):
     df_all['attributes'] = df_all['attributes'] \
         .map(lambda s: stem_text(s, False))
     print 'attributes processed'
+    df_all['search_term'] = df_all['search_term'] \
+        .map(lambda s: preprocessing(s, True))
+    df_all['search_term_synonym'] = df_all['search_term'] \
+        .map(lambda s: get_synonym(s))
+    print 'Synonym of search terms added.'
+    df_all['search_term'] = df_all['search_term'] \
+        .map(lambda s: stem_text(s, True))
+    print 'Search_term processed.'
     return df_all
 
 
@@ -337,8 +341,8 @@ def main():
         df_all.to_pickle('df_all_before_stem')
 
     df_all = pd.read_pickle('df_all_before_stem')
-    processes = mp.Pool(processes=4)
-    split_dfs = numpy.array_split(df_all, 4)
+    processes = mp.Pool(processes=20)
+    split_dfs = numpy.array_split(df_all, 20)
     pool_results = processes.map(df_process, split_dfs)
     processes.close()
     processes.join()
