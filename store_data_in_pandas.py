@@ -4,6 +4,7 @@ This script basically extracts numerical features from text data.
 The numerical features are basically the occurrences of the search
 term in each column of the tuple.
 """
+import numpy
 import pandas as pd
 import sys
 # from nltk.stem.porter import PorterStemmer
@@ -11,6 +12,7 @@ from nltk.corpus import stopwords
 import re
 from nltk.stem.snowball import SnowballStemmer
 from PyDictionary import PyDictionary
+import multiprocessing as mp
 
 synonym_dict = PyDictionary()
 
@@ -49,9 +51,7 @@ def preprocessing(s, is_search_term):
     :return: processed text string
     """
     if is_search_term and s in spell_check_dict_:
-        print s, '-->',
         s = spell_check_dict_[s]
-        print s
     if type(s) in {int, float}:
         return str(s)
     s = remove_non_ascii(s)
@@ -204,101 +204,12 @@ def get_synonym(s):
     return result
 
 
-def main():
-    # input all data sets
-    df_train = pd.read_csv("train.csv", encoding="ISO-8859-1")
-    df_test = pd.read_csv("test.csv", encoding="ISO-8859-1")
-    df_product_desc = pd.read_csv("product_descriptions.csv")
-    df_product_attribute = pd.read_csv("attributes.csv")
-
-    # extract brands for each product
-    df_brand = df_product_attribute \
-        [df_product_attribute.name == "MFG Brand Name"] \
-        [['product_uid', 'value']].rename(
-            columns={'value': 'brand'})
-
-    # extract color for each product
-    df_color = df_product_attribute \
-        [(df_product_attribute.name == 'Color Family') |
-         (df_product_attribute.name == 'Color/Finish')] \
-        [['product_uid', 'value']].rename(
-            columns={'value': 'color'})
-
-    # aggregate color values
-    df_color_agg = df_color \
-        .groupby('product_uid') \
-        .agg(lambda ls: " ".join([str(text) for text in ls]))
-    df_color \
-        = pd.DataFrame({
-        'product_uid': df_color_agg['color']
-            .keys(),
-        'color': df_color_agg['color']
-            .get_values()})
-
-    # extract material for each product
-    df_material = df_product_attribute \
-        [df_product_attribute.name == "Material"] \
-        [['product_uid', 'value']].rename(
-            columns={'value': 'material'})
-    df_material_agg = df_material \
-        .groupby('product_uid') \
-        .agg(lambda ls: " ".join([str(text) for text in ls]))
-    df_material \
-        = pd.DataFrame({
-        'product_uid': df_material_agg['material']
-            .keys(),
-        'material': df_material_agg['material']
-            .get_values()})
-
-    df_product_attribute \
-        = df_product_attribute[
-         (df_product_attribute.name != 'MFG Brand Name') &
-         (df_product_attribute.name != 'Material') &
-         (df_product_attribute.name != 'Color Family') &
-         (df_product_attribute.name != 'Color/Finish')]
-
-    # extract product id and attribute values
-    df_product_attribute_selected \
-        = df_product_attribute[['product_uid', 'value']] \
-        .rename(columns={'value': 'attributes'})
-
-    # Notice that str() cannot be omitted here because text can
-    # be float and that may cause trouble because join don't connect
-    # float.
-    # In addition, using df_attribute_temp.value.agg is safer because
-    # it gives more detailed error information
-    df_product_attribute_agg = df_product_attribute_selected \
-        .groupby('product_uid') \
-        .agg(lambda ls: " ".join([str(text) for text in ls]))
-    df_product_attribute \
-        = pd.DataFrame({
-        'product_uid': df_product_attribute_agg['attributes']
-            .keys(),
-        'attributes': df_product_attribute_agg['attributes']
-            .get_values()})
-
-
-
-    print 'All data obtained.'
-
-    # merge different tables.
-    df_all = pd.concat((df_train, df_test), axis=0,
-                       ignore_index=True)
-    df_all = pd.merge(df_all, df_product_desc, how='left',
-                      on='product_uid')
-    df_all = pd.merge(df_all, df_product_attribute, how='left',
-                      on='product_uid')
-    df_all = pd.merge(df_all, df_brand, how='left',
-                      on='product_uid')
-    df_all = pd.merge(df_all, df_color, how='left',
-                      on='product_uid')
-    df_all = pd.merge(df_all, df_material, how='left',
-                      on='product_uid')
-    print 'Data table merged.'
-    # store merged text
-    df_all.to_pickle('df_all_before_stem')
-
-    # stem all text fields.
+def df_process(df_all):
+    """
+    process the data in df_all
+    :param df_all: data frame object
+    :return: the processed data frame object
+    """
     df_all['color'] = df_all['color'] \
         .map(lambda s: stem_text(s, False))
     print 'color processed'
@@ -326,7 +237,112 @@ def main():
     df_all['attributes'] = df_all['attributes'] \
         .map(lambda s: stem_text(s, False))
     print 'attributes processed'
+    return df_all
 
+
+def main():
+    data_not_loaded = False
+    if data_not_loaded:
+        # input all data sets
+        df_train = pd.read_csv("train.csv", encoding="ISO-8859-1")
+        df_test = pd.read_csv("test.csv", encoding="ISO-8859-1")
+        df_product_desc = pd.read_csv("product_descriptions.csv")
+        df_product_attribute = pd.read_csv("attributes.csv")
+
+        # extract brands for each product
+        df_brand = df_product_attribute \
+            [df_product_attribute.name == "MFG Brand Name"] \
+            [['product_uid', 'value']].rename(
+                columns={'value': 'brand'})
+
+        # extract color for each product
+        df_color = df_product_attribute \
+            [(df_product_attribute.name == 'Color Family') |
+             (df_product_attribute.name == 'Color/Finish')] \
+            [['product_uid', 'value']].rename(
+                columns={'value': 'color'})
+
+        # aggregate color values
+        df_color_agg = df_color \
+            .groupby('product_uid') \
+            .agg(lambda ls: " ".join([str(text) for text in ls]))
+        df_color \
+            = pd.DataFrame({
+            'product_uid': df_color_agg['color']
+                .keys(),
+            'color': df_color_agg['color']
+                .get_values()})
+
+        # extract material for each product
+        df_material = df_product_attribute \
+            [df_product_attribute.name == "Material"] \
+            [['product_uid', 'value']].rename(
+                columns={'value': 'material'})
+        df_material_agg = df_material \
+            .groupby('product_uid') \
+            .agg(lambda ls: " ".join([str(text) for text in ls]))
+        df_material \
+            = pd.DataFrame({
+            'product_uid': df_material_agg['material']
+                .keys(),
+            'material': df_material_agg['material']
+                .get_values()})
+
+        df_product_attribute \
+            = df_product_attribute[
+             (df_product_attribute.name != 'MFG Brand Name') &
+             (df_product_attribute.name != 'Material') &
+             (df_product_attribute.name != 'Color Family') &
+             (df_product_attribute.name != 'Color/Finish')]
+
+        # extract product id and attribute values
+        df_product_attribute_selected \
+            = df_product_attribute[['product_uid', 'value']] \
+            .rename(columns={'value': 'attributes'})
+
+        # Notice that str() cannot be omitted here because text can
+        # be float and that may cause trouble because join don't connect
+        # float.
+        # In addition, using df_attribute_temp.value.agg is safer because
+        # it gives more detailed error information
+        df_product_attribute_agg = df_product_attribute_selected \
+            .groupby('product_uid') \
+            .agg(lambda ls: " ".join([str(text) for text in ls]))
+        df_product_attribute \
+            = pd.DataFrame({
+            'product_uid': df_product_attribute_agg['attributes']
+                .keys(),
+            'attributes': df_product_attribute_agg['attributes']
+                .get_values()})
+
+
+
+        print 'All data obtained.'
+
+        # merge different tables.
+        df_all = pd.concat((df_train, df_test), axis=0,
+                           ignore_index=True)
+        df_all = pd.merge(df_all, df_product_desc, how='left',
+                          on='product_uid')
+        df_all = pd.merge(df_all, df_product_attribute, how='left',
+                          on='product_uid')
+        df_all = pd.merge(df_all, df_brand, how='left',
+                          on='product_uid')
+        df_all = pd.merge(df_all, df_color, how='left',
+                          on='product_uid')
+        df_all = pd.merge(df_all, df_material, how='left',
+                          on='product_uid')
+        print 'Data table merged.'
+        # store merged text
+        df_all.to_pickle('df_all_before_stem')
+
+    df_all = pd.read_pickle('df_all_before_stem')
+    processes = mp.Pool(processes=4)
+    split_dfs = numpy.array_split(df_all, 4)
+    pool_results = processes.map(df_process, split_dfs)
+    processes.close()
+    processes.join()
+    df_all = pd.concat(pool_results, axis=0)
 
     # save the whole df
     df_all.to_pickle('df_all')
