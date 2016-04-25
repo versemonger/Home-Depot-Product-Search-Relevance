@@ -29,7 +29,8 @@ SVD_component_num = 12
 normalize_feature_list = []
 SVD_component_feature_list \
     = ['search_term', 'product_title', 'product_description',
-       'attributes', 'brand', 'color', 'material']
+       'attributes', 'brand', 'color', 'material',
+       'search_term_synonym']
 
 
 def find_occurrences(str1, str2):
@@ -76,11 +77,11 @@ def find_common_word(str1, str2):
 
 def range_filter(x):
     """
-    For each feature, round to to large data to 6
+    For each feature, round to   large data to 11
     :param x: feature in one sample, an array
-    :return: x if x is small and 6 if x is larger than 6
+    :return: x if x is small and 11 if x is larger than 11
     """
-    x[x > 6] = 6
+    x[x > 11] = 11
     return x
 
 
@@ -336,15 +337,12 @@ def main():
     df_train = None
 
     df_all = pd.read_pickle('df_all')
-#    train_num = len(df_all.index) / 2
-    # feature_list = ['product_title', 'product_description',
-    #                 'attributes', 'brand', 'text']
     feature_list = ['product_title', 'product_description',
                     'attributes', 'brand', 'text']
 
-    # for feature in feature_list:
-    #     get_saperate_LSI_score(df_all, feature)
-    # print 'LSI_score added.'
+    for feature in feature_list:
+        get_saperate_LSI_score(df_all, feature)
+    print 'LSI_score added.'
 
     # Coalesce all information into one column so we can apply
     # map to that one column
