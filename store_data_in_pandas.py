@@ -66,7 +66,7 @@ def preprocessing(s, is_search_term):
     s = re.sub(r'\s', ' ', s)
 
     # replace characters like ,$?-()[]{} with spaces
-    s = re.sub(r'[,&!\$\?\-\(\)\[\]{}:<>]', " ", s)
+    s = re.sub(r'[,&!\$\?\-\(\)\[\]{}:<>;=]', " ", s)
 
     # remove . between abbreviations.
     s = re.sub(r'([A-Z])\.(?=[A-Z. ])', r"\1", s)
@@ -102,12 +102,6 @@ def preprocessing(s, is_search_term):
     # like 1//2 should be 1/2
     s = s.replace("//", "/")
 
-    # this is not associated with number , so it could be ignored
-    # There is no cases like 1 / 2 in product description,
-    # and very likely there will be no cases like this in other
-    # files.
-    s = s.replace(' / ', ' ')
-
     # remove adjacent spaces
     s = re.sub(r' +', ' ', s)
 
@@ -118,9 +112,14 @@ def preprocessing(s, is_search_term):
 
     s = re.sub(r'([a-z]) *[/\\\\] *([a-z])', r'\1 \2', s)
     s = re.sub(r'([0-9])\\\\([0-9])', r'\1/\2', s)
+    s = re.sub(r'^/', '', s)
+    s = re.sub(r"/$", '', s)
 
-    s = re.sub(r"/$", r"", s)
-
+    # this is not associated with number , so it could be ignored
+    # There is no cases like 1 / 2 in product description,
+    # and very likely there will be no cases like this in other
+    # files.
+    s = s.replace(' / ', ' ')
     # separate adjacent number and characters
     s = re.sub(r"([0-9])([a-z])", r"\1 \2", s)
     s = re.sub(r"([a-z])([0-9])", r"\1 \2", s)
@@ -169,6 +168,7 @@ def preprocessing(s, is_search_term):
     s = s.replace("whirlpoolstainless", "whirlpool stainless")
     s = s.replace('refrigeratorators', 'fridge')
     s = s.replace('refrigerator', 'fridge')
+    s = s.replace("'", ' ')
     s = re.sub(r' +', r' ', s)
     return s
 
@@ -196,14 +196,12 @@ def get_synonym(s):
     """
     terms = []
     for word in s.strip().split(' '):
-        if len(word) == 0:
+        if len(word) == 0 or word in stopwords_set:
             continue
         if ord(word[0]) > 57 or ord(word[0]) < 48:
             synonyms = synonym_dict.synonym(word)
             if synonyms:
                 terms.extend(synonyms)
-            else:
-                terms.append(word)
     result = ' '.join(terms)
     return result
 
@@ -237,6 +235,8 @@ def df_process(df_all):
         .map(lambda s: preprocessing(s, True))
     df_all['search_term_synonym'] = df_all['search_term'] \
         .map(lambda s: get_synonym(s))
+    df_all['search_term_synonym'] = df_all['search_term_synonym'] \
+        .map(lambda s:  stem_text(s, False))
     print 'Synonym of search terms added.'
     df_all['search_term'] = df_all['search_term'] \
         .map(lambda s: stem_text(s, True))
