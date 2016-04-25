@@ -47,10 +47,11 @@ def main():
 
     # Set XGBRegressor with optimized parameters.
     xgb_model\
-        = xgb.XGBRegressor(learning_rate=0.03, silent=True,
+        = xgb.XGBRegressor(learning_rate=0.002, silent=True,
                            objective="reg:logistic", gamma=2.2,
                            min_child_weight=5, subsample=0.8,
-                           colsample_bytree=0.7, n_estimators=1500,
+                           colsample_bytree=0.7,
+                           n_estimators=100000,
                            scale_pos_weight=0.55, max_depth=11)
     print 'Fit the data with XGBoost'
     # make predictions with tuned parameters and XGBoost model
