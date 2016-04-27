@@ -1,8 +1,6 @@
 """
 Adapted from https://www.kaggle.com/wenxuanchen/home-depot-product-search-relevance/sklearn-random-forest
-This script basically extracts numerical features from text data.
-The numerical features are basically the occurrences of the search
-term in each column of the tuple.
+This script mainly preprocesses the text and stem all the text.
 """
 import numpy
 import pandas as pd
@@ -168,6 +166,7 @@ def preprocessing(s, is_search_term):
     s = s.replace("whirlpoolstainless", "whirlpool stainless")
     s = s.replace('refrigeratorators', 'fridge')
     s = s.replace('refrigerator', 'fridge')
+    s = s.replace('bathtubs', 'bathtub')
     s = s.replace("'", ' ')
     s = re.sub(r' +', r' ', s)
     return s
